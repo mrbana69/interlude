@@ -15,6 +15,9 @@ await fastify.register(cors, {
 fastify.get('/health', async () => {
   return { status: 'ok', service: 'interlude-server', source: 'YouTube Music', timestamp: Date.now() };
 });
+fastify.get('/api/health', async () => {
+  return { status: 'ok', service: 'interlude-server', source: 'YouTube Music', timestamp: Date.now() };
+});
 
 // Get room details
 fastify.get('/api/rooms/:code', async (request, reply) => {

@@ -45,7 +45,7 @@ export function useHostAudioDeck(
     }
 
     try {
-      const streamUrl = track.streamUrl || `http://localhost:2007/api/stream/${track.id}`;
+      const streamUrl = track.streamUrl || `/api/stream/${track.id}`;
       const res = await fetch(streamUrl);
       if (res.ok) {
         const blob = await res.blob();
@@ -83,7 +83,7 @@ export function useHostAudioDeck(
       blobUrl = slot2Ref.current.blobUrl;
       slot2Ref.current = null;
     } else {
-      const streamUrl = currentTrack.streamUrl || `http://localhost:2007/api/stream/${currentTrack.id}`;
+      const streamUrl = currentTrack.streamUrl || `/api/stream/${currentTrack.id}`;
       const res = await fetch(streamUrl);
       const blob = await res.blob();
       blobUrl = URL.createObjectURL(blob);

@@ -57,9 +57,14 @@ export interface QueueErrorEvent {
 const getServerUrl = () => {
   if (typeof window !== 'undefined') {
     if (process.env.NEXT_PUBLIC_SOCKET_URL) return process.env.NEXT_PUBLIC_SOCKET_URL;
-    return `${window.location.protocol}//${window.location.hostname}:2007`;
+    // In standalone local dev on port 3000, connect directly to backend on 2007
+    if (window.location.port === '3000') {
+      return `${window.location.protocol}//${window.location.hostname}:2007`;
+    }
+    // On Vercel (or custom domain), socket.io requests route through same origin via Vercel rewrites
+    return window.location.origin;
   }
-  return 'http://localhost:2007';
+  return process.env.SERVER_URL || 'http://localhost:2007';
 };
 
 export function useRoomSocket(roomCode: string, isHost = false) {
