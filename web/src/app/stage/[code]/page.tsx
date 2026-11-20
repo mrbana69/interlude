@@ -8,7 +8,7 @@ export default function StageViewPage() {
   const params = useParams();
   const roomCode = (params.code as string) || '';
 
-  const { room, lastSync, reactions } = useRoomSocket(roomCode, false);
+  const { room, connected, lastSync, reactions } = useRoomSocket(roomCode, false);
   const currentTrack = room?.queue.find((t) => t.id === room.currentTrackId) || room?.queue[0];
   const nextTrack = room?.queue.find((t) => t.id !== currentTrack?.id);
 
@@ -27,6 +27,7 @@ export default function StageViewPage() {
           <span className="font-mono text-xs px-2.5 py-1 rounded bg-surface-800 border border-surface-700 text-muted-light font-bold">
             {roomCode}
           </span>
+          <span className={`w-2 h-2 rounded-full ${connected ? 'bg-accent-green' : 'bg-accent-red'}`} />
         </div>
 
         {nextTrack && (

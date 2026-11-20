@@ -2,13 +2,19 @@ import { Server as SocketIOServer } from 'socket.io';
 import type { Server as HTTPServer } from 'node:http';
 import { getOrCreateRoom, getRoom, addTrackToQueue, removeTrackFromQueue, reorderQueue, updatePlaybackSync } from './roomManager.js';
 
+let ioInstance: SocketIOServer | null = null;
+
 export function setupSocketIO(server: HTTPServer) {
+  if (ioInstance) return ioInstance;
+
   const io = new SocketIOServer(server, {
     cors: {
       origin: '*',
       methods: ['GET', 'POST']
-    }
+    },
+    transports: ['websocket', 'polling']
   });
+  ioInstance = io;
 
   io.on('connection', (socket) => {
     socket.on('room:join', ({ roomCode, guestToken, nickname, hostSecret }) => {

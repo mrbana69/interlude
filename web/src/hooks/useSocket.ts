@@ -86,7 +86,14 @@ export function useRoomSocket(roomCode: string, isHost = false) {
 
     let hostSecret = isHost ? localStorage.getItem(`interlude_host_${roomCode}`) : undefined;
 
-    const socket = io(getServerUrl());
+    const socket = io(getServerUrl(), {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000
+    });
     socketRef.current = socket;
 
     socket.on('connect', () => {
@@ -99,7 +106,15 @@ export function useRoomSocket(roomCode: string, isHost = false) {
       });
     });
 
-    socket.on('disconnect', () => setConnected(false));
+    socket.on('disconnect', (reason) => {
+      console.warn('[Socket] Disconnected:', reason);
+      setConnected(false);
+    });
+
+    socket.on('connect_error', (err) => {
+      console.warn('[Socket] Connection error:', err.message);
+      setConnected(false);
+    });
 
     socket.on('room:state', (state: RoomState) => {
       setRoom(state);

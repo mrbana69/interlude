@@ -93,10 +93,18 @@ fastify.get('/api/stream/:videoId', async (request, reply) => {
 
 const PORT = Number(process.env.PORT) || 2007;
 
-// Start server and attach socket.io
+// Initialize plugins and attach socket.io to the underlying HTTP server
 await fastify.ready();
 setupSocketIO(fastify.server);
 
-fastify.server.listen(PORT, '0.0.0.0', () => {
-  console.log(`[Interlude Server] Running on http://0.0.0.0:${PORT} (Powered by YouTube Music)`);
-});
+if (!process.env.VERCEL) {
+  fastify.listen({ port: PORT, host: '0.0.0.0' }, (err) => {
+    if (err) {
+      console.error('[Interlude Server] Listen error:', err);
+      process.exit(1);
+    }
+    console.log(`[Interlude Server] Running on http://0.0.0.0:${PORT} (Powered by YouTube Music)`);
+  });
+}
+
+export default fastify;
