@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><title>PartyWave Console</title><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"primary":"#000000","on-primary-container":"#858383","surface-container-highest":"#e2e2e2","violet":"#7928ca","link-soft":"#d3e5ff","surface-container-high":"#e8e8e8","canvas":"#fafafa","on-error-container":"#93000a","gradient-preview-end":"#ff0080","on-primary":"#ffffff","secondary-fixed-dim":"#aec6ff","on-secondary-fixed":"#001a43","magenta":"#eb367f","gradient-preview-start":"#7928ca","gradient-develop-end":"#00dfd8","inverse-primary":"#c8c6c5","secondary":"#0057c0","secondary-container":"#006ff0","outline":"#747878","on-secondary-container":"#fefcff","body":"#4d4d4d","on-error":"#ffffff","on-surface":"#1a1c1c","tertiary-fixed-dim":"#cac6c4","ink":"#171717","inverse-on-surface":"#f0f1f1","inverse-surface":"#2f3131","on-primary-fixed-variant":"#474746","faint":"#a1a1a1","gradient-ship-start":"#ff4d4d","hairline":"#ebebeb","outline-variant":"#c4c7c7","on-primary-fixed":"#1c1b1b","surface-bright":"#f9f9f9","tertiary":"#000000","link":"#0070f3","surface-variant":"#e2e2e2","on-tertiary":"#ffffff","on-tertiary-fixed":"#1c1b1a","hairline-soft":"#f2f2f2","primary-fixed":"#e5e2e1","on-background":"#1a1c1c","cyan":"#50e3c2","gradient-ship-end":"#f9cb28","primary-container":"#1c1b1b","on-secondary-fixed-variant":"#004397","gradient-develop-start":"#007cf0","surface-container-lowest":"#ffffff","tertiary-container":"#1c1b1a","background":"#f9f9f9","canvas-elevated":"#ffffff","primary-fixed-dim":"#c8c6c5","on-surface-variant":"#444748","error":"#ee0000","on-secondary":"#ffffff","surface":"#f9f9f9","pink":"#ff0080","surface-container-low":"#f3f3f3","warning":"#f5a623","secondary-fixed":"#d8e2ff","error-deep":"#c50000","on-tertiary-fixed-variant":"#484645","surface-tint":"#5f5e5e","on-tertiary-container":"#868382","link-deep":"#0761d1","error-container":"#ffdad6","surface-dim":"#dadada","mute":"#8f8f8f","tertiary-fixed":"#e6e2df","surface-container":"#eeeeee"},borderRadius:{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem"},spacing:{"space-4xl":"6rem","space-3xl":"4rem","space-md":"1rem","space-2xl":"2.5rem","margin-desktop":"2rem","space-lg":"1.5rem","space-xs":"0.5rem","gutter-desktop":"1.5rem","space-xxs":"0.25rem","space-section":"8rem","space-sm":"0.75rem","space-xl":"2rem","margin":"1rem","gutter":"1rem","margin-tablet":"1.5rem"},fontFamily:{"display-xl":["Geist"],"mono-eyebrow":["JetBrains Mono"],"heading-md":["Geist"],"heading-lg":["Geist"],"body-lg":["Geist"],"button-md":["Geist"],"body-sm":["Geist"],"code":["JetBrains Mono"],"display-xl-mobile":["Geist"],"body-md":["Geist"],"label-sm":["Geist"],"button-lg":["Geist"]},fontSize:{"display-xl":["48px",{"lineHeight":"48px","letterSpacing":"-2.4px","fontWeight":"600"}],"mono-eyebrow":["12px",{"lineHeight":"16px","letterSpacing":"0.05em","fontWeight":"500"}],"heading-md":["20px",{"lineHeight":"28px","letterSpacing":"-0.4px","fontWeight":"600"}],"heading-lg":["32px",{"lineHeight":"40px","letterSpacing":"-1.28px","fontWeight":"600"}],"body-lg":["16px",{"lineHeight":"24px","letterSpacing":"0px","fontWeight":"400"}],"button-md":["14px",{"lineHeight":"20px","letterSpacing":"0px","fontWeight":"500"}],"body-sm":["12px",{"lineHeight":"16px","letterSpacing":"0px","fontWeight":"400"}],"code":["14px",{"lineHeight":"20px","letterSpacing":"0px","fontWeight":"400"}],"display-xl-mobile":["32px",{"lineHeight":"36px","letterSpacing":"-1.28px","fontWeight":"600"}],"body-md":["14px",{"lineHeight":"20px","letterSpacing":"0px","fontWeight":"400"}],"label-sm":["14px",{"lineHeight":"20px","letterSpacing":"-0.28px","fontWeight":"500"}],"button-lg":["16px",{"lineHeight":"20px","letterSpacing":"0px","fontWeight":"500"}]}}}};</script></head><body class="bg-canvas text-on-surface font-body-md text-body-md antialiased selection:bg-primary selection:text-on-primary"><header class="fixed top-0 left-0 right-0 w-full z-50 bg-canvas border-b border-hairline"><div class="h-14 w-full px-margin-desktop flex items-center justify-between gap-space-md"><div class="flex items-center gap-space-md min-w-max"><div class="flex items-center gap-space-xs"><svg class="w-5 h-5 text-ink" fill="none" stroke="currentColor" stroke-width="1.75" viewbox="0 0 24 24"><path d="M3 16l4-8 4 6 5-10 5 12" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="font-heading-md text-body-lg text-ink font-semibold tracking-tight">PartyWave Console</span></div><span class="inline-flex items-center px-space-xs py-space-xxs rounded-lg bg-surface-container-high border border-hairline font-mono-eyebrow text-body-sm text-ink">HOST LIVE</span><nav class="hidden lg:flex items-center gap-space-xxs ml-space-sm" data-active-classes="text-ink font-semibold bg-surface-container-high"><a aria-current="page" class="px-space-xs py-space-xxs rounded-lg transition-colors text-ink font-semibold bg-surface-container-high" data-path="live-console" href="#">Console</a><a class="px-space-xs py-space-xxs rounded-lg text-on-surface-variant hover:text-on-surface transition-colors font-label-sm text-label-sm" data-path="queue-manager" href="#">Queue &amp; Crowd</a><a class="px-space-xs py-space-xxs rounded-lg text-on-surface-variant hover:text-on-surface transition-colors font-label-sm text-label-sm" data-path="sound-and-routing" href="#">FX &amp; Routing</a><a class="px-space-xs py-space-xxs rounded-lg text-on-surface-variant hover:text-on-surface transition-colors font-label-sm text-label-sm" data-path="session-analytics" href="#">Telemetry</a></nav></div><div class="hidden md:flex items-center justify-center"><div class="inline-flex items-center gap-space-xs px-space-sm py-space-xxs rounded-full bg-surface-container-lowest border border-hairline shadow-[0_1px_1px_rgba(0,0,0,0.04)]"><span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-cyan"></span></span><span class="font-mono-eyebrow text-body-sm text-ink">BROADCASTING TO SOUNDSYSTEM</span></div></div><div class="flex items-center gap-space-md min-w-max justify-end"><div class="hidden xl:flex items-center gap-space-xs bg-surface-container-lowest px-space-xs py-space-xxs rounded-lg border border-hairline"><span class="material-symbols-outlined text-[16px] text-faint">volume_up</span><input class="w-20 h-1 accent-ink bg-surface-container-high rounded-full cursor-pointer" max="100" min="0" type="range" value="82"/><span class="font-mono-eyebrow text-body-sm text-ink">82%</span></div><div class="flex items-center gap-space-xxs px-space-xs py-space-xxs rounded-lg bg-surface-container-lowest border border-hairline cursor-pointer hover:border-outline-variant transition-colors"><span class="font-label-sm text-body-sm text-ink">Main Out • Club Sound</span><span class="material-symbols-outlined text-[16px] text-mute">expand_more</span></div><div class="hidden sm:flex items-center gap-space-xxs px-space-xs py-space-xxs rounded-lg bg-surface-container-low"><span class="font-mono-eyebrow text-body-sm text-mute">PING</span><span class="font-mono-eyebrow text-body-sm text-ink font-semibold">12ms</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="w-full pt-14 bg-canvas min-h-screen"><div class="flex flex-col w-full">
+<div class="w-full max-w-[1440px] mx-auto px-margin-desktop py-space-xl">
+<!-- Top System Status Strip -->
+<div class="flex items-center justify-between pb-space-lg mb-space-xl border-b border-hairline">
+<div class="flex items-center gap-space-sm">
+<span class="inline-flex items-center gap-space-xxs px-space-xs py-space-xxs rounded bg-surface-container-high border border-hairline font-mono-eyebrow text-body-sm text-ink">
+<span class="w-1.5 h-1.5 rounded-full bg-cyan animate-pulse"></span>
+          NODE: US-EAST-01 // LOW LATENCY
+        </span>
+<span class="font-mono-eyebrow text-body-sm text-mute">SYS CLOCK 23:42:19 UTC</span>
+</div>
+<div class="flex items-center gap-space-md">
+<div class="flex items-center gap-space-xs font-mono-eyebrow text-body-sm text-mute">
+<span>BITRATE:</span>
+<span class="text-ink font-semibold">320 KBPS AAC</span>
+</div>
+<div class="w-px h-3 bg-hairline"></div>
+<div class="flex items-center gap-space-xs font-mono-eyebrow text-body-sm text-mute">
+<span>DSP LOAD:</span>
+<span class="text-ink font-semibold">14.2%</span>
+</div>
+<div class="w-px h-3 bg-hairline"></div>
+<button class="px-space-xs py-1 rounded bg-surface-container-lowest border border-hairline hover:border-outline text-ink font-label-sm text-body-sm flex items-center gap-1 transition-colors">
+<span class="material-symbols-outlined text-[16px]">tune</span>
+<span>Deck Config</span>
+</button>
+</div>
+</div>
+<!-- 3-Column Studio Console Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg items-start">
+<!-- ========================================== -->
+<!-- ZONE 1: LEFT SIDEBAR (30% -> col-span-4)  -->
+<!-- ========================================== -->
+<section class="lg:col-span-4 flex flex-col gap-space-md">
+<!-- Eyebrow -->
+<div class="flex items-center justify-between px-space-xxs">
+<span class="font-mono-eyebrow text-body-sm text-mute tracking-wider">ROOM SESSION // BROADCAST</span>
+<span class="inline-flex items-center gap-1 px-space-xs py-0.5 rounded bg-surface-container-high font-mono-eyebrow text-[11px] text-ink">
+            PORT: 8084
+          </span>
+</div>
+<!-- Room & QR Elevated Hairline Card -->
+<div class="bg-surface-container-lowest rounded-xl border border-hairline p-space-lg shadow-[0_1px_1px_rgba(0,0,0,0.04)] flex flex-col gap-space-lg">
+<!-- Room Title & Short Code -->
+<div class="flex items-start justify-between">
+<div>
+<h2 class="font-heading-md text-heading-md text-ink">Live Room &amp; Access</h2>
+<p class="font-body-sm text-body-sm text-mute mt-0.5">Direct crowd broadcast mesh link</p>
+</div>
+<div class="inline-flex items-center gap-1.5 px-space-xs py-1 rounded-full bg-surface-container-low border border-hairline">
+<span class="w-2 h-2 rounded-full bg-cyan"></span>
+<span class="font-mono-eyebrow text-[11px] text-ink font-semibold">ON AIR</span>
+</div>
+</div>
+<!-- Code Pill & Copy Button -->
+<div class="flex items-center gap-space-xs p-space-xs bg-canvas rounded-lg border border-hairline">
+<div class="flex-1 flex items-center gap-space-xs pl-space-xs">
+<span class="font-mono-eyebrow text-body-sm text-mute">CODE</span>
+<span class="font-mono-eyebrow text-body-lg text-ink font-semibold tracking-wider" id="roomCode">PARTY-84</span>
+</div>
+<button class="h-8 px-space-xs rounded bg-surface-container-lowest border border-hairline hover:border-outline text-ink font-button-md text-body-sm flex items-center gap-1 transition-colors" id="copyBtn" onclick="copyRoomCode()">
+<span class="material-symbols-outlined text-[16px]" id="copyIcon">content_copy</span>
+<span id="copyText">Copy Link</span>
+</button>
+</div>
+<!-- Crisp Scannable QR Code Frame -->
+<div class="bg-canvas border border-hairline rounded-lg p-space-lg flex flex-col items-center justify-center">
+<div class="bg-surface-container-lowest p-space-sm rounded border border-hairline shadow-[0_1px_1px_rgba(0,0,0,0.02)]">
+<!-- Geometric Precise SVG QR Code -->
+<svg class="w-40 h-40 text-ink" fill="currentColor" viewbox="0 0 160 160">
+<!-- Top-Left Finder -->
+<rect fill="#171717" height="40" rx="3" width="40" x="10" y="10"></rect>
+<rect fill="#ffffff" height="28" width="28" x="16" y="16"></rect>
+<rect fill="#171717" height="16" width="16" x="22" y="22"></rect>
+<!-- Top-Right Finder -->
+<rect fill="#171717" height="40" rx="3" width="40" x="110" y="10"></rect>
+<rect fill="#ffffff" height="28" width="28" x="116" y="16"></rect>
+<rect fill="#171717" height="16" width="16" x="122" y="22"></rect>
+<!-- Bottom-Left Finder -->
+<rect fill="#171717" height="40" rx="3" width="40" x="10" y="110"></rect>
+<rect fill="#ffffff" height="28" width="28" x="16" y="116"></rect>
+<rect fill="#171717" height="16" width="16" x="22" y="122"></rect>
+<!-- Data Blocks -->
+<rect fill="#171717" height="8" width="8" x="60" y="14"></rect>
+<rect fill="#171717" height="8" width="16" x="76" y="14"></rect>
+<rect fill="#171717" height="12" width="12" x="60" y="30"></rect>
+<rect fill="#171717" height="8" width="8" x="80" y="30"></rect>
+<rect fill="#171717" height="20" width="8" x="92" y="30"></rect>
+<rect fill="#171717" height="16" width="8" x="14" y="60"></rect>
+<rect fill="#171717" height="8" width="16" x="30" y="60"></rect>
+<rect fill="#171717" height="8" width="12" x="14" y="84"></rect>
+<rect fill="#171717" height="16" width="12" x="34" y="80"></rect>
+<rect fill="#171717" height="16" width="16" x="60" y="60"></rect>
+<rect fill="#171717" height="8" width="16" x="84" y="60"></rect>
+<rect fill="#171717" height="12" width="12" x="108" y="60"></rect>
+<rect fill="#171717" height="8" width="18" x="128" y="60"></rect>
+<rect fill="#171717" height="16" width="8" x="128" y="76"></rect>
+<rect fill="#171717" height="8" width="8" x="144" y="76"></rect>
+<rect fill="#171717" height="20" width="8" x="60" y="84"></rect>
+<rect fill="#171717" height="8" width="20" x="76" y="84"></rect>
+<rect fill="#171717" height="12" width="16" x="104" y="80"></rect>
+<rect fill="#171717" height="8" width="14" x="60" y="112"></rect>
+<rect fill="#171717" height="16" width="8" x="82" y="112"></rect>
+<rect fill="#171717" height="8" width="14" x="98" y="112"></rect>
+<rect fill="#171717" height="8" width="26" x="120" y="112"></rect>
+<rect fill="#171717" height="18" width="16" x="60" y="128"></rect>
+<rect fill="#171717" height="10" width="20" x="84" y="136"></rect>
+<rect fill="#171717" height="18" width="8" x="112" y="128"></rect>
+<rect fill="#171717" height="18" width="18" x="128" y="128"></rect>
+<!-- Center Brand Badge -->
+<rect fill="#ffffff" height="24" rx="4" width="24" x="68" y="68"></rect>
+<path d="M74 80 L77 75 L80 82 L83 73 L86 85" fill="none" stroke="#171717" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+<span class="font-mono-eyebrow text-body-sm text-mute mt-space-sm">Scan with camera to queue songs</span>
+</div>
+<!-- Active Guest Counter Pill -->
+<div class="flex items-center justify-between p-space-sm rounded-lg bg-canvas border border-hairline">
+<div class="flex items-center gap-space-xs">
+<div class="flex -space-x-2 overflow-hidden">
+<div class="w-6 h-6 rounded-full bg-surface-container-high border border-surface-container-lowest flex items-center justify-center text-[10px] font-mono-eyebrow text-ink">SK</div>
+<div class="w-6 h-6 rounded-full bg-ink text-surface-container-lowest border border-surface-container-lowest flex items-center justify-center text-[10px] font-mono-eyebrow">AM</div>
+<div class="w-6 h-6 rounded-full bg-surface-container-highest border border-surface-container-lowest flex items-center justify-center text-[10px] font-mono-eyebrow text-ink">PR</div>
+<div class="w-6 h-6 rounded-full bg-surface-container-high border border-surface-container-lowest flex items-center justify-center text-[10px] font-mono-eyebrow text-mute">+39</div>
+</div>
+<span class="font-body-md text-body-sm text-ink font-semibold">42 Guests Active</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-cyan"></span>
+</span>
+<span class="font-mono-eyebrow text-body-sm text-mute">LIVE</span>
+</div>
+</div>
+<!-- Mode Switcher -->
+<div class="flex flex-col gap-space-xs">
+<span class="font-mono-eyebrow text-[11px] text-mute uppercase tracking-wide">Crowd Governance Mode</span>
+<div class="grid grid-cols-2 p-1 bg-canvas rounded-lg border border-hairline gap-1">
+<button class="py-space-xs px-space-xs rounded font-label-sm text-body-sm bg-surface-container-lowest text-ink shadow-[0_1px_1px_rgba(0,0,0,0.04)] border border-hairline transition-all" id="modeJukebox" onclick="switchMode('jukebox')">
+                DJ Jukebox
+              </button>
+<button class="py-space-xs px-space-xs rounded font-label-sm text-body-sm text-mute hover:text-ink transition-all" id="modeKaraoke" onclick="switchMode('karaoke')">
+                Karaoke Mode
+              </button>
+</div>
+<p class="font-body-sm text-body-sm text-mute mt-1 px-1" id="modeDescription">
+              Crowd upvotes automatically reorder upcoming playback. Highest score plays next.
+            </p>
+</div>
+<!-- Quick Session Controls -->
+<div class="pt-space-sm border-t border-hairline flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<span class="font-label-sm text-body-sm text-ink">Lock Submissions</span>
+<span class="font-body-sm text-[11px] text-mute">Halt new incoming requests</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" id="queueLockToggle" onchange="toggleQueueLock()" type="checkbox"/>
+<div class="w-9 h-5 bg-surface-container-high peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-hairline after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-ink"></div>
+</label>
+</div>
+<div class="flex items-center justify-between text-body-sm">
+<span class="font-label-sm text-ink">Per-Guest Limit</span>
+<span class="inline-flex items-center px-space-xs py-0.5 rounded bg-canvas border border-hairline font-mono-eyebrow text-body-sm text-ink">
+                Max 2 songs
+              </span>
+</div>
+</div>
+</div>
+</section>
+<!-- ========================================== -->
+<!-- ZONE 2: CENTER MAIN AREA (45% -> col-span-5) -->
+<!-- ========================================== -->
+<section class="lg:col-span-5 flex flex-col gap-space-md">
+<!-- Eyebrow -->
+<div class="flex items-center justify-between px-space-xxs">
+<span class="font-mono-eyebrow text-body-sm text-mute tracking-wider">PRIMARY DECK // LIVE AUDIO ENGINE</span>
+<span class="font-mono-eyebrow text-body-sm text-ink">DECK A (MASTER)</span>
+</div>
+<!-- Master Player Feature Card -->
+<div class="relative bg-surface-container-lowest rounded-xl border border-hairline p-space-xl shadow-[0_1px_1px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col gap-space-lg">
+<!-- Subtle Multi-Stop Atmospheric Mesh Gradient Glow behind Album Art -->
+<div class="absolute -top-16 left-1/2 -translate-x-1/2 w-80 h-72 pointer-events-none opacity-30 blur-3xl" style="background: radial-gradient(circle at 30% 30%, #00dfd8 0%, transparent 60%), radial-gradient(circle at 70% 40%, #7928ca 0%, transparent 60%), radial-gradient(circle at 50% 80%, #eb367f 0%, transparent 60%);">
+</div>
+<!-- Album Art & Track Info -->
+<div class="relative flex flex-col items-center text-center">
+<!-- Vinyl Groove Styled Album Sleeve -->
+<div class="relative w-52 h-52 mb-space-md group">
+<!-- Vinyl Record Disc peek -->
+<div class="absolute inset-0 rounded-full bg-ink -right-5 top-0 bottom-0 shadow-lg border-2 border-hairline opacity-90 transition-transform duration-500 group-hover:translate-x-4 flex items-center justify-center">
+<div class="w-16 h-16 rounded-full border border-surface-variant flex items-center justify-center">
+<div class="w-5 h-5 rounded-full bg-canvas"></div>
+</div>
+</div>
+<!-- Outer Album Artwork Jacket -->
+<div class="relative z-10 w-full h-full rounded-lg overflow-hidden border border-hairline shadow-md bg-canvas">
+<img class="w-full h-full object-cover" data-alt="Futuristic neon city skyline at midnight reflecting in rain puddles, deep violet, magenta, and cyan electronic synthwave album artwork cover high resolution minimal vinyl style" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDnQchPDWgkwdgM1cXqxdu_GiGvkpv_PpyJp5zW26m56k0iaAoplU-gqCk1oqnM80VHU_qG9bJoWq1eK0vEHYY-AqMo6ia_BV3gMNNY6Hk928BFlZRnEijIt0oammMmeKoA4HMcos4VeOUuNBg3OLzfUKJAQwzMJ5I7gjfdNN9SnC33P9peOpPPTlLtVDAkyXoGyvNdEDOx64EghsoSvA2H9qd7md4HLUd5_TAX8273"/>
+</div>
+</div>
+<!-- Track Metadata -->
+<div class="relative z-10 max-w-full px-space-xs">
+<span class="inline-flex items-center px-space-xs py-0.5 rounded bg-surface-container-high font-mono-eyebrow text-[11px] text-ink mb-1.5">
+                NOW PLAYING
+              </span>
+<h1 class="font-heading-lg text-heading-lg text-ink font-semibold tracking-tight truncate">
+                Midnight City (VIP Remix)
+              </h1>
+<p class="font-body-md text-body-md text-mute mt-1">
+                M83 • Eric Prydz Edit • 126 BPM • Key 8A (Am)
+              </p>
+</div>
+</div>
+<!-- Waveform Visualizer & Scrubber -->
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center justify-between font-mono-eyebrow text-body-sm text-mute">
+<span class="text-ink font-medium" id="timeElapsed">02:44</span>
+<span class="flex items-center gap-1 text-[11px]">
+<span class="w-1.5 h-1.5 rounded-full bg-ink"></span>
+                PHASE LOCKED
+              </span>
+<span id="timeTotal">04:18</span>
+</div>
+<!-- Waveform Canvas Mockup -->
+<div class="relative w-full h-14 bg-canvas rounded-lg border border-hairline px-2 flex items-center cursor-pointer group" id="waveformContainer" onclick="seekWaveform(event)">
+<!-- Scrubber line indicator -->
+<div class="absolute top-0 bottom-0 left-[62%] w-0.5 bg-ink z-20 pointer-events-none">
+<div class="w-2.5 h-2.5 rounded-full bg-ink -ml-1 -top-1 absolute shadow-sm"></div>
+</div>
+<!-- SVG Waveform Bars -->
+<svg class="w-full h-10" preserveaspectratio="none" viewbox="0 0 100 24">
+<!-- Played section (Dark Ink #171717) up to 62% -->
+<path d="
+                  M0 12 L0 14 M2 10 L2 16 M4 7 L4 18 M6 5 L6 20 M8 8 L8 17 M10 4 L10 21 M12 6 L12 19 
+                  M14 9 L14 16 M16 3 L16 22 M18 5 L18 20 M20 8 L20 17 M22 4 L22 21 M24 6 L24 19 
+                  M26 2 L26 23 M28 6 L28 19 M30 8 L30 17 M32 3 L32 22 M34 7 L34 18 M36 4 L36 21 
+                  M38 9 L38 16 M40 2 L40 23 M42 5 L42 20 M44 7 L44 18 M46 4 L46 21 M48 6 L48 19 
+                  M50 3 L50 22 M52 8 L52 17 M54 4 L54 21 M56 6 L56 19 M58 2 L58 23 M60 5 L60 20 M62 8 L62 17
+                " stroke="#171717" stroke-linecap="round" stroke-width="1.25"></path>
+<!-- Remaining section (Light Grey #c4c7c7) past 62% -->
+<path d="
+                  M64 4 L64 21 M66 6 L66 19 M68 9 L68 16 M70 3 L70 22 M72 7 L72 18 M74 5 L74 20 
+                  M76 8 L76 17 M78 4 L78 21 M80 6 L80 19 M82 2 L82 23 M84 8 L84 17 M86 5 L86 20 
+                  M88 4 L88 21 M90 7 L90 18 M92 3 L92 22 M94 6 L94 19 M96 8 L96 17 M98 10 L98 15 M100 11 L100 13
+                " stroke="#c4c7c7" stroke-linecap="round" stroke-width="1.25"></path>
+</svg>
+</div>
+</div>
+<!-- Master Transport Controls -->
+<div class="flex flex-col gap-space-md items-center">
+<div class="flex items-center justify-center gap-space-sm w-full">
+<!-- Previous -->
+<button class="w-9 h-9 rounded bg-surface-container-lowest border border-hairline hover:border-outline text-ink flex items-center justify-center transition-colors">
+<span class="material-symbols-outlined text-[20px]">skip_previous</span>
+</button>
+<!-- Rewind 10s -->
+<button class="w-9 h-9 rounded bg-surface-container-lowest border border-hairline hover:border-outline text-ink flex items-center justify-center transition-colors" title="Rewind 10s">
+<span class="material-symbols-outlined text-[18px]">replay_10</span>
+</button>
+<!-- Main Play/Pause Button -->
+<button class="w-14 h-14 rounded-full bg-ink text-surface-container-lowest hover:opacity-90 flex items-center justify-center shadow-md transition-all active:scale-95" id="masterPlayBtn" onclick="togglePlayState()">
+<span class="material-symbols-outlined text-[28px]" id="playIcon">pause</span>
+</button>
+<!-- Fast Forward 10s -->
+<button class="w-9 h-9 rounded bg-surface-container-lowest border border-hairline hover:border-outline text-ink flex items-center justify-center transition-colors" title="Forward 10s">
+<span class="material-symbols-outlined text-[18px]">forward_10</span>
+</button>
+<!-- Next -->
+<button class="w-9 h-9 rounded bg-surface-container-lowest border border-hairline hover:border-outline text-ink flex items-center justify-center transition-colors">
+<span class="material-symbols-outlined text-[20px]">skip_next</span>
+</button>
+</div>
+<!-- Auto-Crossfade Active Indicator -->
+<div class="inline-flex items-center gap-2 px-space-sm py-1 rounded bg-canvas border border-hairline">
+<span class="w-2 h-2 rounded-full bg-ink"></span>
+<span class="font-mono-eyebrow text-body-sm text-ink font-semibold">Auto-Crossfade [ 8s ]</span>
+<span class="font-mono-eyebrow text-body-sm text-mute">SMOOTH EQUAL-POWER</span>
+</div>
+</div>
+<!-- Audio Processing Deck: Vocal Reducer & Quick FX -->
+<div class="border-t border-hairline pt-space-md flex flex-col gap-space-md">
+<!-- Vocal Reducer Slider Card -->
+<div class="bg-canvas border border-hairline rounded-lg p-space-sm flex flex-col gap-space-xs">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-ink">mic_off</span>
+<span class="font-label-sm text-body-sm text-ink font-medium">Real-Time Vocal Reducer</span>
+</div>
+<span class="font-mono-eyebrow text-body-sm text-ink font-semibold" id="vocalPctReadout">65% Attenuated</span>
+</div>
+<input class="w-full h-1.5 bg-surface-container-high rounded-full accent-ink cursor-pointer" id="vocalSlider" max="100" min="0" oninput="updateVocalSlider(this.value)" type="range" value="65"/>
+<div class="flex items-center justify-between font-mono-eyebrow text-[11px] text-mute">
+<span>0% Full Vocals</span>
+<span>Karaoke Cut (100%)</span>
+</div>
+</div>
+<!-- Quick Filter / Routing Buttons -->
+<div class="grid grid-cols-3 gap-space-xs">
+<button class="px-space-xs py-1.5 rounded bg-canvas border border-hairline hover:border-outline text-ink font-label-sm text-body-sm flex items-center justify-center gap-1 transition-colors">
+<span class="material-symbols-outlined text-[16px]">graphic_eq</span>
+<span>Low-End Cut</span>
+</button>
+<button class="px-space-xs py-1.5 rounded bg-surface-container-high border border-hairline text-ink font-label-sm text-body-sm flex items-center justify-center gap-1 transition-colors font-semibold">
+<span class="material-symbols-outlined text-[16px] text-cyan">sync</span>
+<span>BPM Sync</span>
+</button>
+<button class="px-space-xs py-1.5 rounded bg-canvas border border-hairline hover:border-outline text-ink font-label-sm text-body-sm flex items-center justify-center gap-1 transition-colors">
+<span class="material-symbols-outlined text-[16px]">volume_up</span>
+<span>Gain +1.2dB</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- ========================================== -->
+<!-- ZONE 3: RIGHT PANEL (25% -> col-span-3)   -->
+<!-- ========================================== -->
+<section class="lg:col-span-3 flex flex-col gap-space-md">
+<!-- Eyebrow -->
+<div class="flex items-center justify-between px-space-xxs">
+<span class="font-mono-eyebrow text-body-sm text-mute tracking-wider">CROWD REQUESTS // QUEUE</span>
+<span class="font-mono-eyebrow text-body-sm text-ink">REAL-TIME</span>
+</div>
+<!-- Queue Feature Container -->
+<div class="bg-surface-container-lowest rounded-xl border border-hairline p-space-md shadow-[0_1px_1px_rgba(0,0,0,0.04)] flex flex-col">
+<!-- Queue Header -->
+<div class="flex items-center justify-between pb-space-sm border-b border-hairline mb-space-sm">
+<div class="flex items-center gap-space-xs">
+<h2 class="font-heading-md text-body-lg text-ink font-semibold">Up Next Queue</h2>
+<span class="px-1.5 py-0.5 rounded bg-canvas border border-hairline font-mono-eyebrow text-[11px] text-ink">
+                8 Tracks
+              </span>
+</div>
+<span class="font-mono-eyebrow text-[11px] text-mute">BY UPVOTES</span>
+</div>
+<!-- Queue Track Rows List -->
+<div class="flex flex-col gap-space-xs overflow-y-auto max-h-[580px] pr-1" id="queueList">
+<!-- Track 1 (Pinned / Top Voted) -->
+<div class="bg-canvas border border-hairline hover:border-outline-variant rounded-lg p-space-xs flex flex-col gap-1 transition-colors group">
+<div class="flex items-center gap-space-xs">
+<!-- Upvotes Badge -->
+<div class="flex flex-col items-center justify-center w-9 h-9 rounded bg-surface-container-lowest border border-hairline">
+<span class="text-[10px] text-ink leading-none">▲</span>
+<span class="font-mono-eyebrow text-[11px] text-ink font-semibold">28</span>
+</div>
+<!-- Thumbnail -->
+<div class="w-9 h-9 rounded overflow-hidden border border-hairline shrink-0 bg-surface-container-high">
+<img class="w-full h-full object-cover" data-alt="Daft punk robotic golden helmets album artwork Discovery iconic electronic music cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAluEGKvso9wABnbDBaDMsz7klikGsQqRtyI96idgmHGbl2Tg-v07pI7oIiWkKqHg3uYRruJRd8XZQxOVyQ2REt5yKX5ukN70C931bulbtdWsusuO0pU1UW5ps6_OhNqaTwBxT66OZwcoxf3BBgsbZ4ZUWlLwwlEoKkfys5G0EiX5y02kvztr-Q1kFNVoJ9FxVLYLnKcQFHwzSuT1VR1E5uqAPXUCa4WrlOByPp4Lje"/>
+</div>
+<!-- Track Details -->
+<div class="flex-1 min-w-0">
+<p class="font-label-sm text-body-sm text-ink font-semibold truncate">One More Time</p>
+<p class="font-body-sm text-[11px] text-mute truncate">Daft Punk</p>
+</div>
+<!-- Host Actions -->
+<div class="flex items-center gap-1 shrink-0">
+<span class="px-1 py-0.5 rounded bg-ink text-surface-container-lowest font-mono-eyebrow text-[9px] tracking-wide">PINNED</span>
+<button class="w-6 h-6 rounded bg-surface-container-lowest border border-hairline hover:border-ink flex items-center justify-center text-mute hover:text-ink transition-colors" title="Remove track">
+<span class="material-symbols-outlined text-[14px]">close</span>
+</button>
+</div>
+</div>
+<div class="flex items-center justify-between text-[11px] font-mono-eyebrow text-mute pt-1 border-t border-hairline">
+<span>REQ: <span class="text-ink font-medium">@sarah_m (VIP)</span></span>
+<span>05:20</span>
+</div>
+</div>
+<!-- Track 2 -->
+<div class="bg-surface-container-lowest border border-hairline hover:border-outline-variant rounded-lg p-space-xs flex flex-col gap-1 transition-colors group">
+<div class="flex items-center gap-space-xs">
+<div class="flex flex-col items-center justify-center w-9 h-9 rounded bg-canvas border border-hairline">
+<span class="text-[10px] text-mute leading-none">▲</span>
+<span class="font-mono-eyebrow text-[11px] text-ink font-semibold">21</span>
+</div>
+<div class="w-9 h-9 rounded overflow-hidden border border-hairline shrink-0 bg-surface-container-high">
+<img class="w-full h-full object-cover" data-alt="Retro disco pop album artwork with neon moon and glitter disco ball aesthetics" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDasDOoCBqbvcRSuCo1dd5YI24VD9gqk_Rf5nRirmla4OxU7C3QKpSAMCS2NK4GrraO1aOcyhxOWdbGgHv7xtiMuPJaLZca5D9CUJQn_TUMJLd6AqnFDFsoPsFdsRkNWeNGbX8ZwvV0S1A6mPgs8rlc9w-A9wduUWVsv5Zwj2FePXCyI8LQ4RP6XhmK-iNJdgXSupnrmnX_FRMIk2zSzytDJgOScySzJPlSWVxnVorS"/>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-label-sm text-body-sm text-ink font-medium truncate">Levitating</p>
+<p class="font-body-sm text-[11px] text-mute truncate">Dua Lipa</p>
+</div>
+<div class="flex items-center gap-1 shrink-0 opacity-80 group-hover:opacity-100">
+<button class="w-6 h-6 rounded bg-canvas border border-hairline hover:border-ink flex items-center justify-center text-mute hover:text-ink transition-colors" title="Pin to Top">
+<span class="material-symbols-outlined text-[14px]">push_pin</span>
+</button>
+<button class="w-6 h-6 rounded bg-canvas border border-hairline hover:border-ink flex items-center justify-center text-mute hover:text-ink transition-colors" title="Remove">
+<span class="material-symbols-outlined text-[14px]">close</span>
+</button>
+</div>
+</div>
+<div class="flex items-center justify-between text-[11px] font-mono-eyebrow text-mute pt-1 border-t border-hairline">
+<span>REQ: <span class="text-ink font-medium">@dj_marcus</span></span>
+<span>03:23</span>
+</div>
+</div>
+<!-- Track 3 -->
+<div class="bg-surface-container-lowest border border-hairline hover:border-outline-variant rounded-lg p-space-xs flex flex-col gap-1 transition-colors group">
+<div class="flex items-center gap-space-xs">
+<div class="flex flex-col items-center justify-center w-9 h-9 rounded bg-canvas border border-hairline">
+<span class="text-[10px] text-mute leading-none">▲</span>
+<span class="font-mono-eyebrow text-[11px] text-ink font-semibold">17</span>
+</div>
+<div class="w-9 h-9 rounded overflow-hidden border border-hairline shrink-0 bg-surface-container-high">
+<img class="w-full h-full object-cover" data-alt="Tech house club vinyl cover design bold black and yellow typography energetic party theme" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDg5MUSXaYVe1QILFrj_oJNZN1Hf2d39Q_ONAgS-olInZ22R1yvWze7UWI3CawvG_95wvtqoEgwoSEiwqOlqK_n6dh9-GX28ujfEcKpr9igEcq5cCKilawMdTQShVjF6rm1oNCpG4bJW49Pl1fGqhn4ghMe_Khr8Il6gCg8lsVa4RyAffgRkI6_sqBF38svPNkvxNUdB8hsn9PWkRmiFwTtODBLreA6_o68H0xRG92Y"/>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-label-sm text-body-sm text-ink font-medium truncate">Losing It</p>
+<p class="font-body-sm text-[11px] text-mute truncate">Fisher</p>
+</div>
+<div class="flex items-center gap-1 shrink-0 opacity-80 group-hover:opacity-100">
+<button class="w-6 h-6 rounded bg-canvas border border-hairline hover:border-ink flex items-center justify-center text-mute hover:text-ink transition-colors" title="Pin to Top">
+<span class="material-symbols-outlined text-[14px]">push_pin</span>
+</button>
+<button class="w-6 h-6 rounded bg-canvas border border-hairline hover:border-ink flex items-center justify-center text-mute hover:text-ink transition-colors" title="Remove">
+<span class="material-symbols-outlined text-[14px]">close</span>
+</button>
+</div>
+</div>
+<div class="flex items-center justify-between text-[11px] font-mono-eyebrow text-mute pt-1 border-t border-hairline">
+<span>REQ: <span class="text-ink font-medium">@alex_rave</span></span>
+<span>04:08</span>
+</div>
+</div>
+<!-- Track 4 -->
+<div class="bg-surface-container-lowest border border-hairline hover:border-outline-variant rounded-lg p-space-xs flex flex-col gap-1 transition-colors group">
+<div class="flex items-center gap-space-xs">
+<div class="flex flex-col items-center justify-center w-9 h-9 rounded bg-canvas border border-hairline">
+<span class="text-[10px] text-mute leading-none">▲</span>
+<span class="font-mono-eyebrow text-[11px] text-ink font-semibold">14</span>
+</div>
+<div class="w-9 h-9 rounded overflow-hidden border border-hairline shrink-0 bg-surface-container-high">
+<img class="w-full h-full object-cover" data-alt="Album artwork with red cross neon lighting and dark synthwave shadows minimal sleek portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAMvAHQ9fTytaeKbB6FsCL4TMKEuDo0hity-oDp9iVuOMEFUDoyvJpAinThDA5KMcr-pkRWN4GpDI3GCGJS9ODU-4noxJgM0NVB6gXAKyfrCjV7f11t2Z-fj6eAmxfYhQ2ExSJM-ZU__HMu7us8TCDG2BwMx5nvZl17wxES_MRLJKGt0RrF8W8uw1JQTFd0b107E9fEhp5jkA53JfuaJZ7s5qMZip4UBrfariju9Jey"/>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-label-sm text-body-sm text-ink font-medium truncate">Starboy</p>
+<p class="font-body-sm text-[11px] text-mute truncate">The Weeknd</p>
+</div>
+<div class="flex items-center gap-1 shrink-0 opacity-80 group-hover:opacity-100">
+<button class="w-6 h-6 rounded bg-canvas border border-hairline hover:border-ink flex items-center justify-center text-mute hover:text-ink transition-colors" title="Pin to Top">
+<span class="material-symbols-outlined text-[14px]">push_pin</span>
+</button>
+<button class="w-6 h-6 rounded bg-canvas border border-hairline hover:border-ink flex items-center justify-center text-mute hover:text-ink transition-colors" title="Remove">
+<span class="material-symbols-outlined text-[14px]">close</span>
+</button>
+</div>
+</div>
+<div class="flex items-center justify-between text-[11px] font-mono-eyebrow text-mute pt-1 border-t border-hairline">
+<span>REQ: <span class="text-ink font-medium">@elena_k</span></span>
+<span>03:50</span>
+</div>
+</div>
+<!-- Track 5 -->
+<div class="bg-surface-container-lowest border border-hairline hover:border-outline-variant rounded-lg p-space-xs flex flex-col gap-1 transition-colors group">
+<div class="flex items-center gap-space-xs">
+<div class="flex flex-col items-center justify-center w-9 h-9 rounded bg-canvas border border-hairline">
+<span class="text-[10px] text-mute leading-none">▲</span>
+<span class="font-mono-eyebrow text-[11px] text-ink font-semibold">9</span>
+</div>
+<div class="w-9 h-9 rounded overflow-hidden border border-hairline shrink-0 bg-surface-container-high">
+<img class="w-full h-full object-cover" data-alt="Electro house vintage club visual with bright minimal graphic elements electronic sound wave aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBXh1uK9v2ionWrUOqoVP-xK4VVhgsLNDoL8Q-weq2r5C7_WWtKhXGY58TY6v31nU3gIKuLOPI4tZVhQ8LwZkBDKLZEDgzOsn1MWy3af2BzjZYR5AQfrs6BU_lm-1OzFDqSw3sTPvALYHYh0OTF4cq2gi-5FcuLUVWkg-zF2oGlablW-NY39o6QJomqc63MrJp13WXnc2bUOUfBfZUudojkG3h8SKI7OOo3MtJc18Px"/>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-label-sm text-body-sm text-ink font-medium truncate">Satisfaction</p>
+<p class="font-body-sm text-[11px] text-mute truncate">Benny Benassi</p>
+</div>
+<div class="flex items-center gap-1 shrink-0 opacity-80 group-hover:opacity-100">
+<button class="w-6 h-6 rounded bg-canvas border border-hairline hover:border-ink flex items-center justify-center text-mute hover:text-ink transition-colors" title="Pin to Top">
+<span class="material-symbols-outlined text-[14px]">push_pin</span>
+</button>
+<button class="w-6 h-6 rounded bg-canvas border border-hairline hover:border-ink flex items-center justify-center text-mute hover:text-ink transition-colors" title="Remove">
+<span class="material-symbols-outlined text-[14px]">close</span>
+</button>
+</div>
+</div>
+<div class="flex items-center justify-between text-[11px] font-mono-eyebrow text-mute pt-1 border-t border-hairline">
+<span>REQ: <span class="text-ink font-medium">@kevin99</span></span>
+<span>02:22</span>
+</div>
+</div>
+</div>
+<!-- Queue Control Footer Strip -->
+<div class="pt-space-md mt-space-sm border-t border-hairline flex flex-col gap-space-xs">
+<button class="w-full h-8 px-space-xs rounded bg-surface-container-lowest border border-hairline hover:border-outline text-ink font-button-md text-body-sm flex items-center justify-center gap-1 transition-colors">
+<span class="material-symbols-outlined text-[16px]">file_download</span>
+<span>Export Playlist (.M3U)</span>
+</button>
+<div class="grid grid-cols-2 gap-space-xs">
+<button class="h-8 px-space-xs rounded bg-canvas border border-hairline hover:border-outline text-ink font-button-md text-body-sm flex items-center justify-center gap-1 transition-colors" id="pauseQueueBtn" onclick="pauseQueue()">
+<span class="material-symbols-outlined text-[14px]" id="pauseQueueIcon">pause_circle</span>
+<span id="pauseQueueText">Pause Guest</span>
+</button>
+<button class="h-8 px-space-xs rounded bg-canvas border border-hairline hover:border-error text-error font-button-md text-body-sm flex items-center justify-center gap-1 transition-colors" onclick="clearQueueConfirm()">
+<span class="material-symbols-outlined text-[14px]">delete_sweep</span>
+<span>Clear</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Bottom Engineering Diagnostic Ribbon -->
+<div class="mt-space-xl pt-space-md border-t border-hairline flex flex-wrap items-center justify-between gap-space-sm text-mute font-mono-eyebrow text-body-sm">
+<div class="flex items-center gap-space-md">
+<span>AUDIO CLOCK: 48,000 HZ / 24-BIT</span>
+<span class="w-1 h-1 rounded-full bg-hairline"></span>
+<span>LATENCY BUFFER: 64 SAMPLES</span>
+<span class="w-1 h-1 rounded-full bg-hairline"></span>
+<span>WEBSOCKET SYNC: ACTIVE (12 PEERS)</span>
+</div>
+<div class="flex items-center gap-space-xs text-ink">
+<span class="w-2 h-2 rounded-full bg-cyan"></span>
+<span>PARTY ENGINE v2.4.9-RELEASE</span>
+</div>
+</div>
+</div>
+</div>
+<script>
+  let isPlaying = true;
+  let queueLocked = false;
+  let queuePaused = false;
+
+  function togglePlayState() {
+    isPlaying = !isPlaying;
+    const playIcon = document.getElementById('playIcon');
+    playIcon.textContent = isPlaying ? 'pause' : 'play_arrow';
+  }
+
+  function copyRoomCode() {
+    const code = document.getElementById('roomCode').innerText;
+    navigator.clipboard.writeText('https://partywave.live/room/' + code);
+    const copyText = document.getElementById('copyText');
+    const copyIcon = document.getElementById('copyIcon');
+    copyText.textContent = 'Copied!';
+    copyIcon.textContent = 'check';
+    setTimeout(() => {
+      copyText.textContent = 'Copy Link';
+      copyIcon.textContent = 'content_copy';
+    }, 2000);
+  }
+
+  function switchMode(mode) {
+    const btnJukebox = document.getElementById('modeJukebox');
+    const btnKaraoke = document.getElementById('modeKaraoke');
+    const desc = document.getElementById('modeDescription');
+    const vocalSlider = document.getElementById('vocalSlider');
+
+    if (mode === 'jukebox') {
+      btnJukebox.className = 'py-space-xs px-space-xs rounded font-label-sm text-body-sm bg-surface-container-lowest text-ink shadow-[0_1px_1px_rgba(0,0,0,0.04)] border border-hairline transition-all';
+      btnKaraoke.className = 'py-space-xs px-space-xs rounded font-label-sm text-body-sm text-mute hover:text-ink transition-all';
+      desc.textContent = 'Crowd upvotes automatically reorder upcoming playback. Highest score plays next.';
+    } else {
+      btnKaraoke.className = 'py-space-xs px-space-xs rounded font-label-sm text-body-sm bg-surface-container-lowest text-ink shadow-[0_1px_1px_rgba(0,0,0,0.04)] border border-hairline transition-all';
+      btnJukebox.className = 'py-space-xs px-space-xs rounded font-label-sm text-body-sm text-mute hover:text-ink transition-all';
+      desc.textContent = 'Karaoke Mode: Synchronized sing-along lyrics broadcast to guests with mic ducking enabled.';
+      if (vocalSlider.value < 80) {
+        vocalSlider.value = 85;
+        updateVocalSlider(85);
+      }
+    }
+  }
+
+  function updateVocalSlider(val) {
+    const readout = document.getElementById('vocalPctReadout');
+    readout.textContent = val + '% Attenuated';
+  }
+
+  function toggleQueueLock() {
+    queueLocked = !queueLocked;
+  }
+
+  function pauseQueue() {
+    queuePaused = !queuePaused;
+    const btnText = document.getElementById('pauseQueueText');
+    const btnIcon = document.getElementById('pauseQueueIcon');
+    if (queuePaused) {
+      btnText.textContent = 'Resume Guest';
+      btnIcon.textContent = 'play_circle';
+    } else {
+      btnText.textContent = 'Pause Guest';
+      btnIcon.textContent = 'pause_circle';
+    }
+  }
+
+  function clearQueueConfirm() {
+    const proceed = confirm("Are you sure you want to clear the crowd requests queue?");
+    if (proceed) {
+      const queueList = document.getElementById('queueList');
+      queueList.innerHTML = '<div class="py-8 text-center font-mono-eyebrow text-mute text-body-sm">Queue is empty. Waiting for guests...</div>';
+    }
+  }
+
+  function seekWaveform(event) {
+    const container = document.getElementById('waveformContainer');
+    const rect = container.getBoundingClientRect();
+    const clickX = event.clientX - rect.left;
+    const pct = Math.max(0, Math.min(1, clickX / rect.width));
+    const totalSecs = 258;
+    const currentSecs = Math.floor(totalSecs * pct);
+    const m = Math.floor(currentSecs / 60);
+    const s = currentSecs % 60;
+    document.getElementById('timeElapsed').textContent = '0' + m + ':' + (s < 10 ? '0' : '') + s;
+  }
+</script></main></body></html>

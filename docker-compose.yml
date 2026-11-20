@@ -1,0 +1,14 @@
+services:
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: interlude-server
+    restart: unless-stopped
+    ports:
+      - "2007:2007"
+    environment:
+      - NODE_ENV=production
+      - PORT=2007
+    volumes:
+      - ./server-data:/app/data
