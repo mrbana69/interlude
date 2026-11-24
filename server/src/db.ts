@@ -1,5 +1,8 @@
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import type { RoomState, LyricsType } from './types.js';
+
+const require = createRequire(import.meta.url);
 
 export interface CachedTrack {
   track_id: string;
@@ -25,60 +28,62 @@ let getRoomStmt: any = null;
 let saveRoomStmt: any = null;
 
 try {
-  const { DatabaseSync } = await import('node:sqlite');
-  const dbPath = process.env.VERCEL
-    ? path.join('/tmp', 'interlude.db')
-    : path.resolve('interlude.db');
+  const sqlite = require('node:sqlite');
+  if (sqlite && sqlite.DatabaseSync) {
+    const dbPath = process.env.VERCEL
+      ? path.join('/tmp', 'interlude.db')
+      : path.resolve('interlude.db');
 
-  sqliteDb = new DatabaseSync(dbPath);
-  try {
-    sqliteDb.exec('PRAGMA journal_mode = WAL;');
-    sqliteDb.exec('PRAGMA synchronous = NORMAL;');
-  } catch {}
+    sqliteDb = new sqlite.DatabaseSync(dbPath);
+    try {
+      sqliteDb.exec('PRAGMA journal_mode = WAL;');
+      sqliteDb.exec('PRAGMA synchronous = NORMAL;');
+    } catch {}
 
-  sqliteDb.exec(`
-    CREATE TABLE IF NOT EXISTS track_cache (
-      track_id TEXT PRIMARY KEY,
-      title TEXT NOT NULL,
-      artist TEXT NOT NULL,
-      duration_sec INTEGER NOT NULL,
-      cover_url TEXT,
-      has_instrumental INTEGER DEFAULT 0,
-      instrumental_id TEXT,
-      lyrics_type TEXT DEFAULT 'none',
-      lyrics_body TEXT,
-      checked_at INTEGER NOT NULL
-    );
+    sqliteDb.exec(`
+      CREATE TABLE IF NOT EXISTS track_cache (
+        track_id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        artist TEXT NOT NULL,
+        duration_sec INTEGER NOT NULL,
+        cover_url TEXT,
+        has_instrumental INTEGER DEFAULT 0,
+        instrumental_id TEXT,
+        lyrics_type TEXT DEFAULT 'none',
+        lyrics_body TEXT,
+        checked_at INTEGER NOT NULL
+      );
 
-    CREATE TABLE IF NOT EXISTS rooms (
-      code TEXT PRIMARY KEY,
-      host_secret TEXT NOT NULL,
-      state_json TEXT NOT NULL,
-      updated_at INTEGER NOT NULL
-    );
-  `);
+      CREATE TABLE IF NOT EXISTS rooms (
+        code TEXT PRIMARY KEY,
+        host_secret TEXT NOT NULL,
+        state_json TEXT NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+    `);
 
-  getTrackStmt = sqliteDb.prepare('SELECT * FROM track_cache WHERE track_id = ?');
-  insertTrackStmt = sqliteDb.prepare(`
-    INSERT INTO track_cache (track_id, title, artist, duration_sec, cover_url, has_instrumental, instrumental_id, lyrics_type, lyrics_body, checked_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(track_id) DO UPDATE SET
-      has_instrumental = excluded.has_instrumental,
-      instrumental_id = excluded.instrumental_id,
-      lyrics_type = excluded.lyrics_type,
-      lyrics_body = excluded.lyrics_body,
-      checked_at = excluded.checked_at
-  `);
+    getTrackStmt = sqliteDb.prepare('SELECT * FROM track_cache WHERE track_id = ?');
+    insertTrackStmt = sqliteDb.prepare(`
+      INSERT INTO track_cache (track_id, title, artist, duration_sec, cover_url, has_instrumental, instrumental_id, lyrics_type, lyrics_body, checked_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(track_id) DO UPDATE SET
+        has_instrumental = excluded.has_instrumental,
+        instrumental_id = excluded.instrumental_id,
+        lyrics_type = excluded.lyrics_type,
+        lyrics_body = excluded.lyrics_body,
+        checked_at = excluded.checked_at
+    `);
 
-  getRoomStmt = sqliteDb.prepare('SELECT * FROM rooms WHERE code = ?');
-  saveRoomStmt = sqliteDb.prepare(`
-    INSERT INTO rooms (code, host_secret, state_json, updated_at)
-    VALUES (?, ?, ?, ?)
-    ON CONFLICT(code) DO UPDATE SET
-      state_json = excluded.state_json,
-      updated_at = excluded.updated_at
-  `);
-  console.log('[DB] SQLite initialized successfully at', dbPath);
+    getRoomStmt = sqliteDb.prepare('SELECT * FROM rooms WHERE code = ?');
+    saveRoomStmt = sqliteDb.prepare(`
+      INSERT INTO rooms (code, host_secret, state_json, updated_at)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(code) DO UPDATE SET
+        state_json = excluded.state_json,
+        updated_at = excluded.updated_at
+    `);
+    console.log('[DB] SQLite initialized successfully at', dbPath);
+  }
 } catch (err: any) {
   console.warn('[DB] SQLite disabled or failed, using memory store fallback:', err?.message);
 }

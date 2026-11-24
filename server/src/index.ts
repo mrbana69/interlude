@@ -39,11 +39,16 @@ fastify.post('/api/rooms', async (request, reply) => {
 
 // Ricerca brani RIGOROSAMENTE su YouTube Music
 fastify.get('/api/search', async (request, reply) => {
-  const { q } = request.query as { q?: string };
-  if (!q || q.trim().length === 0) return [];
+  try {
+    const { q } = request.query as { q?: string };
+    if (!q || q.trim().length === 0) return [];
 
-  const results = await searchYouTubeMusic(q.trim());
-  return results;
+    const results = await searchYouTubeMusic(q.trim());
+    return results;
+  } catch (err: any) {
+    console.error('[API Search Error]:', err);
+    return [];
+  }
 });
 
 // Proxy copertine immagini per evitare blocchi CORS e referer su mobile Safari & Chrome
@@ -93,11 +98,36 @@ fastify.get('/api/stream/:videoId', async (request, reply) => {
 
 const PORT = Number(process.env.PORT) || 2007;
 
-// Initialize plugins and attach socket.io to the underlying HTTP server
-await fastify.ready();
-setupSocketIO(fastify.server);
+let isReady = false;
+async function initServer() {
+  if (isReady) return;
+  await fastify.ready();
+  setupSocketIO(fastify.server);
+  isReady = true;
+}
 
-if (!process.env.VERCEL) {
+// Serverless handler for Vercel Functions
+export default async function handler(req: any, res: any) {
+  await initServer();
+  fastify.server.emit('request', req, res);
+}
+
+// Attach Fastify instance and HTTP server to handler for maximum compatibility
+Object.assign(handler, fastify);
+(handler as any).server = fastify.server;
+(handler as any).fastify = fastify;
+
+// Local development server listener
+const isDirectRun = !process.env.VERCEL && Boolean(
+  process.argv[1] && (
+    process.argv[1].endsWith('index.js') ||
+    process.argv[1].endsWith('index.ts') ||
+    process.argv[1].endsWith('tsx')
+  )
+);
+
+if (isDirectRun) {
+  await initServer();
   fastify.listen({ port: PORT, host: '0.0.0.0' }, (err) => {
     if (err) {
       console.error('[Interlude Server] Listen error:', err);
@@ -106,5 +136,3 @@ if (!process.env.VERCEL) {
     console.log(`[Interlude Server] Running on http://0.0.0.0:${PORT} (Powered by YouTube Music)`);
   });
 }
-
-export default fastify;

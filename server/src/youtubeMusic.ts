@@ -4,7 +4,7 @@ import { Ytdl, Quality } from '@distube/ytdl-core';
 import { getCachedTrack, cacheTrack } from './db.js';
 import type { SearchResultItem } from './types.js';
 
-let ytmusicClient: any = null;
+let ytmusicPromise: Promise<any> | null = null;
 const ytdlClient = new Ytdl();
 const YTM_COOKIE = process.env.YTM_COOKIE || '';
 
@@ -62,12 +62,18 @@ export function formatArtistName(rawName?: string): string {
 }
 
 export async function getYTMusicClient() {
-  if (!ytmusicClient) {
-    const Constructor: any = typeof YTMusic === 'function' ? YTMusic : (YTMusic as any).default;
-    ytmusicClient = new Constructor();
-    await ytmusicClient.initialize();
+  if (!ytmusicPromise) {
+    ytmusicPromise = (async () => {
+      const Constructor: any = typeof YTMusic === 'function' ? YTMusic : (YTMusic as any).default;
+      const client = new Constructor();
+      await client.initialize();
+      return client;
+    })().catch(err => {
+      ytmusicPromise = null;
+      throw err;
+    });
   }
-  return ytmusicClient;
+  return ytmusicPromise;
 }
 
 export async function searchYouTubeMusic(query: string): Promise<SearchResultItem[]> {
@@ -76,32 +82,36 @@ export async function searchYouTubeMusic(query: string): Promise<SearchResultIte
     // Ricerca esclusiva nel catalogo brani musicali di YouTube Music
     const songs = await client.searchSongs(query);
 
-    return (songs || []).slice(0, 15).map((song: any) => {
-      const trackId = song.videoId;
-      const cached = getCachedTrack(trackId);
+    return (songs || [])
+      .filter((song: any) => song && (song.videoId || song.id))
+      .slice(0, 15)
+      .map((song: any) => {
+        const trackId = song.videoId || song.id;
+        const cached = getCachedTrack(trackId);
 
-      const rawArtist = song.artist?.name || (song.artists && song.artists.map((a: any) => a.name).join(', ')) || 'Artista';
-      const cleanArtist = formatArtistName(rawArtist);
+        const rawArtist = song.artist?.name || (Array.isArray(song.artists) && song.artists.map((a: any) => a.name).join(', ')) || 'Artista';
+        const cleanArtist = formatArtistName(rawArtist);
 
-      // Select high quality but lightweight thumbnail
-      const rawCover = song.thumbnails?.[1]?.url || song.thumbnails?.[0]?.url || song.thumbnails?.[song.thumbnails.length - 1]?.url;
-      const directCover = formatThumb(rawCover, 180);
-      // Route through local cover proxy to bypass mobile Safari/Chrome referer blocking
-      const coverUrl = directCover ? `/api/cover-proxy?url=${encodeURIComponent(directCover)}` : '';
+        // Select high quality but lightweight thumbnail
+        const thumbs = Array.isArray(song.thumbnails) ? song.thumbnails : [];
+        const rawCover = thumbs[1]?.url || thumbs[0]?.url || (thumbs.length > 0 ? thumbs[thumbs.length - 1]?.url : '');
+        const directCover = formatThumb(rawCover, 180);
+        // Route through local cover proxy to bypass mobile Safari/Chrome referer blocking
+        const coverUrl = directCover ? `/api/cover-proxy?url=${encodeURIComponent(directCover)}` : '';
 
-      return {
-        id: trackId,
-        title: song.name,
-        artist: cleanArtist,
-        durationSec: song.duration || 180,
-        coverUrl,
-        streamUrl: `/api/stream/${trackId}`,
-        cached: !!cached,
-        hasLyrics: cached ? cached.lyrics_type !== 'none' : undefined,
-        lyricsType: cached ? cached.lyrics_type : undefined,
-        hasInstrumental: cached ? cached.has_instrumental === 1 : undefined
-      };
-    });
+        return {
+          id: trackId,
+          title: song.name || 'Brano senza titolo',
+          artist: cleanArtist,
+          durationSec: song.duration || 180,
+          coverUrl,
+          streamUrl: `/api/stream/${trackId}`,
+          cached: !!cached,
+          hasLyrics: cached ? cached.lyrics_type !== 'none' : undefined,
+          lyricsType: cached ? cached.lyrics_type : undefined,
+          hasInstrumental: cached ? cached.has_instrumental === 1 : undefined
+        };
+      });
   } catch (err) {
     console.error('[YTMusic] Errore ricerca:', err);
     return [];
@@ -119,7 +129,7 @@ export async function findInstrumentalOnYTMusic(
     const query = `${artist} ${title} instrumental`;
     const candidates = await client.searchSongs(query);
 
-    for (const song of candidates) {
+    for (const song of candidates || []) {
       const dur = song.duration || 0;
       const nameLower = (song.name || '').toLowerCase();
 
@@ -128,7 +138,7 @@ export async function findInstrumentalOnYTMusic(
       const hasInstrumentalKeyword = nameLower.includes('instrumental') || nameLower.includes('karaoke') || nameLower.includes('backing track');
 
       if (isDurationClose && hasInstrumentalKeyword) {
-        return { instrumentalId: song.videoId, title: song.name };
+        return { instrumentalId: song.videoId || song.id, title: song.name };
       }
     }
 
