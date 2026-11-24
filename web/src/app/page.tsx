@@ -31,9 +31,9 @@ export default function LandingPage() {
     <div className="min-h-screen bg-black text-white flex flex-col justify-between p-6 sm:p-12 font-sans">
       {/* Minimal Header */}
       <header className="flex items-center justify-between">
-        <span className="font-display font-extrabold text-2xl tracking-tighter">
+        <h1 className="font-display font-extrabold text-2xl tracking-tighter">
           interlude
-        </span>
+        </h1>
         <button
           onClick={handleCreateRoom}
           disabled={isCreating}

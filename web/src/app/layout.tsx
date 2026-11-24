@@ -1,9 +1,51 @@
 import type { Metadata } from 'next';
+import { Syne, Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
+
+const syne = Syne({
+  subsets: ['latin'],
+  variable: '--font-display',
+  display: 'swap',
+  weight: ['600', '700', '800'],
+});
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  variable: '--font-sans',
+  display: 'swap',
+  weight: ['400', '500', '600', '700'],
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono',
+  display: 'swap',
+  weight: ['400', '500', '700'],
+});
 
 export const metadata: Metadata = {
   title: 'interlude — dj queue & karaoke',
-  description: 'Real-time collaborative stage and DJ queue for parties',
+  description: 'Stage collaborativo e coda musicale in tempo reale per feste ed eventi',
+  metadataBase: new URL('https://interlude-five.vercel.app'),
+  openGraph: {
+    title: 'interlude — dj queue & karaoke',
+    description: 'Aggiungi le tue canzoni preferite alla coda della festa in tempo reale',
+    url: 'https://interlude-five.vercel.app',
+    siteName: 'interlude',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'interlude — dj queue & karaoke',
+    description: 'Aggiungi le tue canzoni preferite alla coda della festa in tempo reale',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+  icons: {
+    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🎧</text></svg>',
+  },
 };
 
 export default function RootLayout({
@@ -12,15 +54,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="it">
+    <html lang="it" className={`${syne.variable} ${plusJakartaSans.variable} ${jetbrainsMono.variable}`}>
       <head>
         <meta name="referrer" content="no-referrer" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Syne:wght@600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
-          rel="stylesheet"
-        />
       </head>
       <body className="bg-black text-white antialiased min-h-screen selection:bg-white selection:text-black">
         {children}
