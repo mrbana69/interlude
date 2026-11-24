@@ -28,6 +28,13 @@ export default function StageViewPage() {
             {roomCode}
           </span>
           <span className={`w-2 h-2 rounded-full ${connected ? 'bg-accent-green' : 'bg-accent-red'}`} />
+          {room?.status === 'playing' && (
+            <div className="flex items-end gap-0.5 h-3.5 ml-1">
+              <span className="w-0.5 bg-accent-green rounded-full animate-pulse h-2" />
+              <span className="w-0.5 bg-accent-green rounded-full animate-pulse h-3.5" style={{ animationDelay: '150ms' }} />
+              <span className="w-0.5 bg-accent-green rounded-full animate-pulse h-1.5" style={{ animationDelay: '300ms' }} />
+            </div>
+          )}
         </div>
 
         {nextTrack && (
@@ -96,10 +103,14 @@ export default function StageViewPage() {
       </main>
 
       {/* Live Reactions Floating Stream */}
-      <div className="absolute bottom-12 right-12 z-20 pointer-events-none flex flex-col-reverse items-center gap-3">
+      <div className="absolute bottom-10 right-10 z-20 pointer-events-none flex flex-col-reverse items-end gap-2.5">
         {reactions.slice(-6).map((r) => (
-          <div key={r.id} className="text-3xl animate-bounce">
-            {r.emoji}
+          <div
+            key={r.id}
+            className="flex items-center gap-2 bg-surface-900/90 border border-surface-700/80 px-4 py-2 rounded-full shadow-2xl backdrop-blur-md animate-bounce"
+          >
+            <span className="text-2xl">{r.emoji}</span>
+            <span className="text-xs font-mono font-semibold text-white">{r.nickname}</span>
           </div>
         ))}
       </div>

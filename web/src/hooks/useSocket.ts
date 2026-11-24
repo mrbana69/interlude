@@ -134,11 +134,14 @@ export function useRoomSocket(roomCode: string, isHost = false) {
           if (res.ok) {
             const data = await res.json();
             setRoom(data);
+            if (Array.isArray(data.reactions) && data.reactions.length > 0) {
+              setReactions(data.reactions);
+            }
             setConnected(true);
           }
         } catch {}
       }
-    }, 3000);
+    }, 2500);
 
     socket.on('room:state', (state: RoomState) => {
       setRoom(state);
@@ -234,7 +237,20 @@ export function useRoomSocket(roomCode: string, isHost = false) {
 
   const sendReaction = (emoji: string) => {
     const nickname = localStorage.getItem('interlude_nickname') || 'Ospite';
-    socketRef.current?.emit('reaction:send', { roomCode, emoji, nickname });
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('reaction:send', { roomCode, emoji, nickname });
+    }
+    // Optimistic local update
+    setReactions(prev => [
+      ...prev.slice(-20),
+      { id: crypto.randomUUID(), emoji, nickname, timestamp: Date.now() }
+    ]);
+    // HTTP sync fallback for serverless
+    fetch('/api/rooms', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'reaction:send', code: roomCode, emoji, nickname })
+    }).catch(() => {});
   };
 
   return {

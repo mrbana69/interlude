@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRoom, getOrCreateRoom, addTrackToRoomQueue, removeTrackFromRoomQueue } from '@/lib/roomStore';
+import { getRoom, getOrCreateRoom, addTrackToRoomQueue, removeTrackFromRoomQueue, addReactionToRoom } from '@/lib/roomStore';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -15,6 +15,12 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
     const code = body.code || `PARTY-${Math.floor(10 + Math.random() * 90)}`;
+
+    if (body.action === 'reaction:send') {
+      const { emoji, nickname } = body;
+      const reaction = addReactionToRoom(code, emoji, nickname);
+      return NextResponse.json({ success: true, reaction });
+    }
 
     if (body.action === 'queue:add') {
       const { track, guestToken, nickname } = body;

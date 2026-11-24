@@ -10,6 +10,7 @@ export default function HostConsolePage() {
   const roomCode = (params.code as string) || '';
   const [crossfade, setCrossfade] = useState(4);
   const [copied, setCopied] = useState(false);
+  const [showQr, setShowQr] = useState(false);
 
   const {
     room,
@@ -66,10 +67,16 @@ export default function HostConsolePage() {
 
         <div className="flex items-center gap-3">
           <button
+            onClick={() => setShowQr(true)}
+            className="px-3.5 py-1.5 rounded-lg border border-surface-700 text-xs font-mono text-muted-light hover:text-white hover:border-surface-600 transition-colors flex items-center gap-1.5"
+          >
+            <span>QR Code</span>
+          </button>
+          <button
             onClick={copyGuestLink}
             className="px-3.5 py-1.5 rounded-lg border border-surface-700 text-xs font-mono text-muted-light hover:text-white hover:border-surface-600 transition-colors"
           >
-            {copied ? 'Link Copiato' : 'Copia link ospiti'}
+            {copied ? 'Link Copiato' : 'Copia link'}
           </button>
           <a
             href={`/stage/${roomCode}`}
@@ -77,7 +84,7 @@ export default function HostConsolePage() {
             rel="noreferrer"
             className="px-3.5 py-1.5 rounded-lg bg-white text-black text-xs font-semibold hover:bg-neutral-200 transition-colors"
           >
-            Apri Stage TV
+            Stage TV
           </a>
         </div>
       </header>
@@ -105,10 +112,17 @@ export default function HostConsolePage() {
                 </div>
 
                 <div className="flex-1 min-w-0 text-center sm:text-left">
-                  <div className="flex items-center justify-center sm:justify-start gap-2 mb-1">
+                  <div className="flex items-center justify-center sm:justify-start gap-2.5 mb-1">
                     <h2 className="font-display font-bold text-2xl truncate">
                       {currentTrack.title}
                     </h2>
+                    {isPlaying && (
+                      <div className="flex items-end gap-0.5 h-4 flex-shrink-0" title="In riproduzione">
+                        <span className="w-1 bg-accent-green rounded-full animate-pulse h-2.5" />
+                        <span className="w-1 bg-accent-green rounded-full animate-pulse h-4" style={{ animationDelay: '150ms' }} />
+                        <span className="w-1 bg-accent-green rounded-full animate-pulse h-2" style={{ animationDelay: '300ms' }} />
+                      </div>
+                    )}
                     {currentTrack.isKaraoke && (
                       <span className="px-2 py-0.5 bg-white/10 text-white text-[10px] font-mono rounded">
                         KARAOKE
@@ -245,6 +259,49 @@ export default function HostConsolePage() {
           </div>
         </div>
       </main>
+
+      {/* QR Code Modal for Party Guests */}
+      {showQr && (
+        <div
+          onClick={() => setShowQr(false)}
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-surface-900 border border-surface-700/90 rounded-3xl p-6 sm:p-8 max-w-sm w-full flex flex-col items-center text-center shadow-2xl relative"
+          >
+            <button
+              onClick={() => setShowQr(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-surface-800 text-muted hover:text-white flex items-center justify-center text-sm transition-colors"
+            >
+              ✕
+            </button>
+
+            <span className="font-mono text-xs px-2.5 py-1 rounded bg-surface-800 border border-surface-700 text-muted-light font-bold uppercase tracking-wider mb-2">
+              STANZA {roomCode}
+            </span>
+            <h3 className="font-display font-bold text-xl text-white mb-1">Scansiona per unirti</h3>
+            <p className="text-xs text-muted mb-5">Inquadra con la fotocamera per aggiungere canzoni alla festa</p>
+
+            <div className="w-56 h-56 bg-white p-3 rounded-2xl shadow-xl flex items-center justify-center overflow-hidden mb-5">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
+                  typeof window !== 'undefined' ? `${window.location.origin}/room/${roomCode}` : `https://interlude-five.vercel.app/room/${roomCode}`
+                )}`}
+                alt={`QR Code Stanza ${roomCode}`}
+                className="w-full h-full object-contain"
+              />
+            </div>
+
+            <button
+              onClick={copyGuestLink}
+              className="w-full py-2.5 bg-white text-black text-xs font-bold rounded-xl hover:bg-neutral-200 active:scale-95 transition-all"
+            >
+              {copied ? 'Link Copiato negli appunti!' : 'Copia link diretto'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -284,12 +284,18 @@ export default function GuestRoomPage() {
                         </div>
                       </div>
 
-                      <button
-                        onClick={() => handleAddTrack(item)}
-                        className="px-3.5 py-1.5 bg-white text-black text-xs font-bold rounded-xl hover:bg-neutral-200 active:scale-95 transition-all flex-shrink-0"
-                      >
-                        + Accoda
-                      </button>
+                      {room?.queue?.some((t) => t.id === item.id) ? (
+                        <span className="px-3 py-1.5 bg-surface-800 border border-surface-700/80 text-accent-green text-[11px] font-mono font-bold rounded-xl flex-shrink-0">
+                          ✓ In coda
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => handleAddTrack(item)}
+                          className="px-3.5 py-1.5 bg-white text-black text-xs font-bold rounded-xl hover:bg-neutral-200 active:scale-95 transition-all flex-shrink-0"
+                        >
+                          + Accoda
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>

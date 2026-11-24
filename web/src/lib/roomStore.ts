@@ -16,6 +16,13 @@ export interface Track {
   serverReceivedAt: number;
 }
 
+export interface ReactionItem {
+  id: string;
+  emoji: string;
+  nickname: string;
+  timestamp: number;
+}
+
 export interface RoomState {
   code: string;
   hostSecret: string;
@@ -27,6 +34,7 @@ export interface RoomState {
   lyricsOffsetMs: number;
   queue: Track[];
   history: Track[];
+  reactions?: ReactionItem[];
 }
 
 const globalRooms = new Map<string, RoomState>();
@@ -45,9 +53,13 @@ export function getOrCreateRoom(code: string, hostSecret?: string): RoomState {
       crossfadeSec: 4,
       lyricsOffsetMs: 0,
       queue: [],
-      history: []
+      history: [],
+      reactions: []
     };
     globalRooms.set(normalized, room);
+  }
+  if (!room.reactions) {
+    room.reactions = [];
   }
   return room;
 }
@@ -95,4 +107,17 @@ export function removeTrackFromRoomQueue(roomCode: string, trackId: string) {
     room.lastSyncTimestampMs = Date.now();
   }
   return room;
+}
+
+export function addReactionToRoom(roomCode: string, emoji: string, nickname: string): ReactionItem {
+  const room = getOrCreateRoom(roomCode);
+  const reaction: ReactionItem = {
+    id: crypto.randomUUID(),
+    emoji,
+    nickname: nickname || 'Ospite',
+    timestamp: Date.now()
+  };
+  if (!room.reactions) room.reactions = [];
+  room.reactions = [...room.reactions.slice(-25), reaction];
+  return reaction;
 }
