@@ -3,6 +3,7 @@
 import { useParams } from 'next/navigation';
 import { useRoomSocket } from '@/hooks/useSocket';
 import { useLyricsSync } from '@/hooks/useLyricsSync';
+import { IconFullscreen } from '@/components/Icons';
 
 export default function StageViewPage() {
   const params = useParams();
@@ -55,10 +56,11 @@ export default function StageViewPage() {
                 }
               }
             }}
-            className="px-3 py-1.5 rounded-lg bg-surface-800 border border-surface-700 text-xs font-mono text-muted-light hover:text-white transition-colors"
+            className="px-3 py-1.5 rounded-lg bg-surface-800 border border-surface-700 text-xs font-mono text-muted-light hover:text-white transition-colors flex items-center gap-1.5"
             title="Schermo intero TV"
           >
-            ⛶ Fullscreen
+            <IconFullscreen size={14} />
+            <span>Fullscreen</span>
           </button>
         </div>
       </header>
@@ -126,7 +128,7 @@ export default function StageViewPage() {
             key={r.id}
             className="flex items-center gap-2 bg-surface-900/90 border border-surface-700/80 px-4 py-2 rounded-full shadow-2xl backdrop-blur-md animate-bounce"
           >
-            <span className="text-2xl">{r.emoji}</span>
+            <span className="text-2xl font-['Apple_Color_Emoji','Segoe_UI_Emoji','Noto_Color_Emoji',sans-serif]">{r.emoji}</span>
             <span className="text-xs font-mono font-semibold text-white">{r.nickname}</span>
           </div>
         ))}

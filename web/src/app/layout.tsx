@@ -1,6 +1,14 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Syne, Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+};
 
 const syne = Syne({
   subsets: ['latin'],
@@ -57,6 +65,10 @@ export default function RootLayout({
     <html lang="it" className={`${syne.variable} ${plusJakartaSans.variable} ${jetbrainsMono.variable}`}>
       <head>
         <meta name="referrer" content="no-referrer" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+        />
       </head>
       <body className="bg-black text-white antialiased min-h-screen selection:bg-white selection:text-black">
         {children}

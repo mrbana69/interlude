@@ -1,16 +1,26 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useRoomSocket } from '@/hooks/useSocket';
 import { useHostAudioDeck } from '@/hooks/useHostAudioDeck';
-import { useState } from 'react';
+import { IconAlbum, IconPlay, IconPause, IconSkip, IconClose } from '@/components/Icons';
+import { useState, useEffect } from 'react';
+import { getDeviceType } from '@/lib/deviceDetection';
 
 export default function HostConsolePage() {
   const params = useParams();
+  const router = useRouter();
   const roomCode = (params.code as string) || '';
   const [crossfade, setCrossfade] = useState(4);
   const [copied, setCopied] = useState(false);
   const [showQr, setShowQr] = useState(false);
+  const [isMobileHost, setIsMobileHost] = useState(false);
+
+  useEffect(() => {
+    if (getDeviceType() === 'mobile') {
+      setIsMobileHost(true);
+    }
+  }, []);
 
   const {
     room,
@@ -107,7 +117,7 @@ export default function HostConsolePage() {
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-muted">
-                      <span className="material-symbols-outlined text-4xl">album</span>
+                      <IconAlbum size={40} className="text-muted" />
                     </div>
                   )}
                 </div>
@@ -175,9 +185,7 @@ export default function HostConsolePage() {
                 className="w-14 h-14 rounded-full bg-white text-black flex items-center justify-center hover:bg-neutral-200 transition-colors"
                 title={isPlaying ? 'Pausa' : 'Play'}
               >
-                <span className="material-symbols-outlined text-[28px]">
-                  {isPlaying ? 'pause' : 'play_arrow'}
-                </span>
+                {isPlaying ? <IconPause size={28} /> : <IconPlay size={28} className="ml-1" />}
               </button>
 
               <button
@@ -185,7 +193,7 @@ export default function HostConsolePage() {
                 className="w-12 h-12 rounded-full border border-surface-700 bg-surface-800 text-white hover:border-surface-600 flex items-center justify-center transition-colors"
                 title="Salta"
               >
-                <span className="material-symbols-outlined text-[22px]">skip_next</span>
+                <IconSkip size={22} />
               </button>
             </div>
 
@@ -256,7 +264,7 @@ export default function HostConsolePage() {
                     className="p-1 text-muted hover:text-white transition-colors"
                     title="Rimuovi"
                   >
-                    <span className="material-symbols-outlined text-[16px]">close</span>
+                    <IconClose size={16} />
                   </button>
                 </div>
               ))}
@@ -310,6 +318,37 @@ export default function HostConsolePage() {
             >
               {copied ? 'Link Copiato negli appunti!' : 'Copia link diretto'}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Host Warning Modal */}
+      {isMobileHost && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-5">
+          <div className="bg-surface-900 border border-surface-700/90 rounded-3xl p-6 sm:p-8 max-w-sm w-full flex flex-col gap-4 text-center shadow-2xl">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center text-2xl mx-auto">
+              📺
+            </div>
+            <h3 className="font-display font-bold text-lg text-white">
+              Console Host su Smartphone
+            </h3>
+            <p className="text-xs text-muted leading-relaxed">
+              La console Host gestisce l&apos;audio delle casse. Sui telefoni l&apos;audio si blocca quando lo schermo va in standby. Per la festa ti consigliamo di aprirla su un <strong>PC o Smart TV</strong>.
+            </p>
+            <div className="flex flex-col gap-2 pt-2">
+              <button
+                onClick={() => router.push(`/room/${roomCode}`)}
+                className="w-full py-3 bg-white text-black font-semibold text-xs rounded-xl hover:bg-neutral-200 transition-colors"
+              >
+                Passa alla schermata Ospite
+              </button>
+              <button
+                onClick={() => setIsMobileHost(false)}
+                className="w-full py-2.5 bg-surface-800 border border-surface-700 text-muted-light hover:text-white font-medium text-xs rounded-xl transition-colors"
+              >
+                Rimani come Host comunque
+              </button>
+            </div>
           </div>
         </div>
       )}

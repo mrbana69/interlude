@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import { useRoomSocket } from '@/hooks/useSocket';
 import { useLyricsSync } from '@/hooks/useLyricsSync';
 import { useState, useEffect, useRef } from 'react';
+import { IconSearch, IconClose, IconLyrics, IconMusicOff } from '@/components/Icons';
 
 export default function GuestRoomPage() {
   const params = useParams();
@@ -198,11 +199,9 @@ export default function GuestRoomPage() {
                 placeholder="Cerca canzone o artista..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="w-full px-4 py-3 pl-11 pr-10 bg-surface-900 border border-surface-700/80 rounded-2xl text-white text-sm placeholder:text-muted focus:outline-none focus:border-white transition-colors"
+                className="w-full px-4 py-3 pl-11 pr-10 bg-surface-900 border border-surface-700/80 rounded-2xl text-white text-base placeholder:text-muted focus:outline-none focus:border-white transition-colors"
               />
-              <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-[20px] text-muted">
-                search
-              </span>
+              <IconSearch size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
               {query && (
                 <button
                   onClick={() => {
@@ -403,7 +402,7 @@ export default function GuestRoomPage() {
                   </div>
                 ) : (
                   <div className="py-16 text-center text-muted p-6 bg-surface-900/40 rounded-2xl border border-surface-700/40">
-                    <span className="material-symbols-outlined text-3xl mb-2 text-muted">lyrics</span>
+                    <IconLyrics size={36} className="mb-2 text-muted mx-auto" />
                     <p className="text-sm font-semibold text-white">Testo sincronizzato non disponibile</p>
                     <p className="text-xs text-muted mt-1">Canta a memoria! La musica sta suonando sulle casse.</p>
                   </div>
@@ -411,7 +410,7 @@ export default function GuestRoomPage() {
               </div>
             ) : (
               <div className="py-20 text-center text-muted p-6 bg-surface-900/40 rounded-2xl border border-surface-700/40">
-                <span className="material-symbols-outlined text-4xl mb-2 text-muted">music_off</span>
+                <IconMusicOff size={36} className="mb-2 text-muted mx-auto" />
                 <p className="text-sm font-semibold text-white">Nessun brano in riproduzione</p>
                 <p className="text-xs text-muted mt-1">Usa la scheda "Cerca" per scegliere la prima canzone!</p>
               </div>
@@ -477,7 +476,7 @@ export default function GuestRoomPage() {
                       className="p-2 text-muted hover:text-white transition-colors flex-shrink-0"
                       title="Rimuovi"
                     >
-                      <span className="material-symbols-outlined text-[16px]">close</span>
+                      <IconClose size={16} />
                     </button>
                   </div>
                 );
@@ -498,11 +497,18 @@ export default function GuestRoomPage() {
         {['🔥', '👏', '🎉', '🎤', '❤️'].map((emoji) => (
           <button
             key={emoji}
-            onClick={() => handleReaction(emoji)}
-            className="w-12 h-12 rounded-full bg-surface-900 border border-surface-700/80 flex items-center justify-center text-xl hover:bg-surface-800 active:scale-90 transition-transform shadow-sm"
+            type="button"
+            onClick={() => {
+              handleReaction(emoji);
+              if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                navigator.vibrate(30);
+              }
+            }}
+            className="w-12 h-12 rounded-full bg-surface-900 border border-surface-700/80 flex items-center justify-center text-xl hover:bg-surface-800 active:scale-90 transition-transform shadow-sm font-['Apple_Color_Emoji','Segoe_UI_Emoji','Noto_Color_Emoji',sans-serif]"
             title={`Invia ${emoji}`}
+            aria-label={`Invia reazione ${emoji}`}
           >
-            {emoji}
+            <span>{emoji}</span>
           </button>
         ))}
       </div>
