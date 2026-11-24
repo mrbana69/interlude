@@ -115,7 +115,7 @@ export function useRoomSocket(roomCode: string, isHost = false) {
       console.warn('[Socket] Connection error:', err.message);
       // Fallback: poll HTTP API in serverless deployments
       try {
-        const res = await fetch(`/api/rooms/${roomCode}`);
+        const res = await fetch(`/api/rooms?code=${encodeURIComponent(roomCode)}`);
         if (res.ok) {
           const data = await res.json();
           setRoom(data);
@@ -130,7 +130,7 @@ export function useRoomSocket(roomCode: string, isHost = false) {
     const fallbackInterval = setInterval(async () => {
       if (!socket.connected) {
         try {
-          const res = await fetch(`/api/rooms/${roomCode}`);
+          const res = await fetch(`/api/rooms?code=${encodeURIComponent(roomCode)}`);
           if (res.ok) {
             const data = await res.json();
             setRoom(data);
@@ -180,10 +180,10 @@ export function useRoomSocket(roomCode: string, isHost = false) {
     } else {
       // HTTP API Fallback
       try {
-        const res = await fetch(`/api/rooms/${roomCode}/queue`, {
+        const res = await fetch('/api/rooms', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ track, guestToken, nickname, requestInstrumental, forceNormal })
+          body: JSON.stringify({ action: 'queue:add', code: roomCode, track, guestToken, nickname, requestInstrumental, forceNormal })
         });
         if (res.ok) {
           const result = await res.json();
@@ -203,8 +203,10 @@ export function useRoomSocket(roomCode: string, isHost = false) {
       socketRef.current.emit('queue:remove', { roomCode, trackId, tokenOrSecret });
     } else {
       try {
-        const res = await fetch(`/api/rooms/${roomCode}/queue?trackId=${encodeURIComponent(trackId)}`, {
-          method: 'DELETE'
+        const res = await fetch('/api/rooms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'queue:remove', code: roomCode, trackId, tokenOrSecret })
         });
         if (res.ok) {
           const result = await res.json();
