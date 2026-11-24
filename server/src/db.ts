@@ -2,7 +2,12 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import type { RoomState, LyricsType } from './types.js';
 
-const require = createRequire(import.meta.url);
+let nodeRequire: any = null;
+try {
+  nodeRequire = typeof require === 'function' ? require : createRequire(import.meta.url || 'file:///tmp/dummy.js');
+} catch {
+  nodeRequire = null;
+}
 
 export interface CachedTrack {
   track_id: string;
@@ -28,7 +33,7 @@ let getRoomStmt: any = null;
 let saveRoomStmt: any = null;
 
 try {
-  const sqlite = require('node:sqlite');
+  const sqlite = nodeRequire ? nodeRequire('node:sqlite') : null;
   if (sqlite && sqlite.DatabaseSync) {
     const dbPath = process.env.VERCEL
       ? path.join('/tmp', 'interlude.db')

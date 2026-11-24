@@ -110,18 +110,29 @@ fastify.get('/api/stream/:videoId', streamHandler);
 const PORT = Number(process.env.PORT) || 2007;
 
 let isReady = false;
+let initPromise: Promise<void> | null = null;
 async function initServer() {
   if (isReady) return;
-  await fastify.ready();
-  setupSocketIO(fastify.server);
-  isReady = true;
+  if (!initPromise) {
+    initPromise = (async () => {
+      await fastify.ready();
+      setupSocketIO(fastify.server);
+      isReady = true;
+    })();
+  }
+  return initPromise;
 }
 
 // Serverless handler for Vercel Functions
 export default async function handler(req: any, res: any) {
   try {
     await initServer();
-    fastify.server.emit('request', req, res);
+    return new Promise<void>((resolve, reject) => {
+      res.on('finish', resolve);
+      res.on('close', resolve);
+      res.on('error', reject);
+      fastify.server.emit('request', req, res);
+    });
   } catch (err: any) {
     console.error('[Handler Error]:', err);
     if (!res.headersSent) {
@@ -147,12 +158,15 @@ const isDirectRun = !process.env.VERCEL && Boolean(
 );
 
 if (isDirectRun) {
-  await initServer();
-  fastify.listen({ port: PORT, host: '0.0.0.0' }, (err) => {
-    if (err) {
-      console.error('[Interlude Server] Listen error:', err);
-      process.exit(1);
-    }
-    console.log(`[Interlude Server] Running on http://0.0.0.0:${PORT} (Powered by YouTube Music)`);
+  initServer().then(() => {
+    fastify.listen({ port: PORT, host: '0.0.0.0' }, (err) => {
+      if (err) {
+        console.error('[Interlude Server] Listen error:', err);
+        process.exit(1);
+      }
+      console.log(`[Interlude Server] Running on http://0.0.0.0:${PORT} (Powered by YouTube Music)`);
+    });
+  }).catch((err) => {
+    console.error('[Interlude Server] Init error:', err);
   });
 }

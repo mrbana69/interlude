@@ -2,7 +2,11 @@
   "name": "interlude",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "pnpm@10.5.2",
   "engines": {
     "node": ">=22.5.0"
+  },
+  "scripts": {
+    "build": "pnpm --filter interlude-server build && pnpm --filter interlude-web build"
   }
 }

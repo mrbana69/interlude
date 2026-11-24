@@ -1,11 +1,22 @@
 import crypto from 'node:crypto';
 import YTMusic from 'ytmusic-api';
-import { Ytdl, Quality } from '@distube/ytdl-core';
 import { getCachedTrack, cacheTrack } from './db.js';
 import type { SearchResultItem } from './types.js';
 
 let ytmusicPromise: Promise<any> | null = null;
-const ytdlClient = new Ytdl();
+let ytdlInstance: any = null;
+let qualityEnum: any = null;
+
+async function getYtdlClient() {
+  if (!ytdlInstance) {
+    const ytdlModule = await import('@distube/ytdl-core');
+    const YtdlConstructor = (ytdlModule as any).Ytdl || (ytdlModule as any).default?.Ytdl;
+    qualityEnum = (ytdlModule as any).Quality || (ytdlModule as any).default?.Quality;
+    ytdlInstance = new YtdlConstructor();
+  }
+  return { ytdl: ytdlInstance, Quality: qualityEnum };
+}
+
 const YTM_COOKIE = process.env.YTM_COOKIE || '';
 
 /**
@@ -150,10 +161,11 @@ export async function findInstrumentalOnYTMusic(
 
 // Estrae lo stream audio da YouTube Music con qualità massima
 export async function getAudioStreamFromYTMusic(videoId: string) {
+  const { ytdl, Quality } = await getYtdlClient();
   const url = `https://music.youtube.com/watch?v=${videoId}`;
-  const info = await ytdlClient.getInfo(url);
-  const stream = ytdlClient.download(info, {
-    quality: Quality.HighestAudio,
+  const info = await ytdl.getInfo(url);
+  const stream = ytdl.download(info, {
+    quality: Quality ? Quality.HighestAudio : undefined,
     filter: { hasAudio: true, hasVideo: false }
   });
 
