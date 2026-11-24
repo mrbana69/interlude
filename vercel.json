@@ -3,7 +3,8 @@
   "services": {
     "server": {
       "root": "server",
-      "framework": "fastify"
+      "framework": "fastify",
+      "entrypoint": "src/index.ts"
     },
     "web": {
       "root": "web",
