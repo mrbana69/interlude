@@ -37,13 +37,30 @@ export default function StageViewPage() {
           )}
         </div>
 
-        {nextTrack && (
-          <div className="text-xs font-mono text-muted flex items-center gap-2">
-            <span>PROSSIMO:</span>
-            <strong className="text-white">{nextTrack.title}</strong>
-            <span>({nextTrack.addedBy.nickname})</span>
-          </div>
-        )}
+        <div className="flex items-center gap-4">
+          {nextTrack && (
+            <div className="text-xs font-mono text-muted hidden sm:flex items-center gap-2">
+              <span>PROSSIMO:</span>
+              <strong className="text-white">{nextTrack.title}</strong>
+              <span>({nextTrack.addedBy.nickname})</span>
+            </div>
+          )}
+          <button
+            onClick={() => {
+              if (typeof document !== 'undefined') {
+                if (!document.fullscreenElement) {
+                  document.documentElement.requestFullscreen().catch(() => {});
+                } else {
+                  document.exitFullscreen().catch(() => {});
+                }
+              }
+            }}
+            className="px-3 py-1.5 rounded-lg bg-surface-800 border border-surface-700 text-xs font-mono text-muted-light hover:text-white transition-colors"
+            title="Schermo intero TV"
+          >
+            ⛶ Fullscreen
+          </button>
+        </div>
       </header>
 
       {/* Main Lyrics */}

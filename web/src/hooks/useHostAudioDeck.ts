@@ -143,6 +143,15 @@ export function useHostAudioDeck(
     }
   };
 
+  const seek = (timeSec: number) => {
+    if (slot1Ref.current && isFinite(timeSec)) {
+      const target = Math.max(0, Math.min(timeSec, duration || 0));
+      slot1Ref.current.audio.currentTime = target;
+      setCurrentTime(target);
+      onSync(isPlaying ? 'playing' : 'paused', slot1Ref.current.trackId, target);
+    }
+  };
+
   // Heartbeat sync every 2 seconds
   useEffect(() => {
     syncIntervalRef.current = setInterval(() => {
@@ -160,6 +169,7 @@ export function useHostAudioDeck(
     duration,
     play: playCurrent,
     pause,
-    skip: advanceTrack
+    skip: advanceTrack,
+    seek
   };
 }

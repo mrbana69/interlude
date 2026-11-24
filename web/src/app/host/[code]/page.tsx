@@ -28,6 +28,7 @@ export default function HostConsolePage() {
     play,
     pause,
     skip,
+    seek,
   } = useHostAudioDeck(
     room?.queue || [],
     room?.currentTrackId || null,
@@ -145,9 +146,19 @@ export default function HostConsolePage() {
 
             {/* Timeline */}
             <div className="flex flex-col gap-2 pt-2">
-              <div className="w-full bg-surface-800 h-1.5 rounded-full overflow-hidden">
+              <div
+                onClick={(e) => {
+                  if (duration > 0) {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                    seek(ratio * duration);
+                  }
+                }}
+                className="w-full bg-surface-800 h-2 rounded-full overflow-hidden cursor-pointer group relative"
+                title="Clicca per saltare nella traccia"
+              >
                 <div
-                  className="bg-white h-full transition-all duration-300"
+                  className="bg-white group-hover:bg-accent-green h-full transition-all duration-150 rounded-full"
                   style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
                 />
               </div>
