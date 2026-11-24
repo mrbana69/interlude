@@ -111,10 +111,34 @@ export function useRoomSocket(roomCode: string, isHost = false) {
       setConnected(false);
     });
 
-    socket.on('connect_error', (err) => {
+    socket.on('connect_error', async (err) => {
       console.warn('[Socket] Connection error:', err.message);
-      setConnected(false);
+      // Fallback: poll HTTP API in serverless deployments
+      try {
+        const res = await fetch(`/api/rooms/${roomCode}`);
+        if (res.ok) {
+          const data = await res.json();
+          setRoom(data);
+          setConnected(true);
+        }
+      } catch {
+        setConnected(false);
+      }
     });
+
+    // In case socket fails or disconnects on serverless, fallback interval keeps room in sync
+    const fallbackInterval = setInterval(async () => {
+      if (!socket.connected) {
+        try {
+          const res = await fetch(`/api/rooms/${roomCode}`);
+          if (res.ok) {
+            const data = await res.json();
+            setRoom(data);
+            setConnected(true);
+          }
+        } catch {}
+      }
+    }, 3000);
 
     socket.on('room:state', (state: RoomState) => {
       setRoom(state);
@@ -136,28 +160,58 @@ export function useRoomSocket(roomCode: string, isHost = false) {
     });
 
     return () => {
+      clearInterval(fallbackInterval);
       socket.disconnect();
     };
   }, [roomCode, isHost]);
 
-  const addTrack = (track: any, requestInstrumental = false, forceNormal = false) => {
+  const addTrack = async (track: any, requestInstrumental = false, forceNormal = false) => {
     const guestToken = localStorage.getItem('interlude_guest_token') || 'anon';
     const nickname = localStorage.getItem('interlude_nickname') || 'Ospite';
-    socketRef.current?.emit('queue:add', {
-      roomCode,
-      track,
-      guestToken,
-      nickname,
-      requestInstrumental,
-      forceNormal
-    });
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('queue:add', {
+        roomCode,
+        track,
+        guestToken,
+        nickname,
+        requestInstrumental,
+        forceNormal
+      });
+    } else {
+      // HTTP API Fallback
+      try {
+        const res = await fetch(`/api/rooms/${roomCode}/queue`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ track, guestToken, nickname, requestInstrumental, forceNormal })
+        });
+        if (res.ok) {
+          const result = await res.json();
+          if (result.room) setRoom(result.room);
+        }
+      } catch (err: any) {
+        console.error('[HTTP Queue Error]:', err);
+      }
+    }
   };
 
-  const removeTrack = (trackId: string) => {
+  const removeTrack = async (trackId: string) => {
     const tokenOrSecret = isHost
       ? localStorage.getItem(`interlude_host_${roomCode}`)
       : localStorage.getItem('interlude_guest_token');
-    socketRef.current?.emit('queue:remove', { roomCode, trackId, tokenOrSecret });
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('queue:remove', { roomCode, trackId, tokenOrSecret });
+    } else {
+      try {
+        const res = await fetch(`/api/rooms/${roomCode}/queue?trackId=${encodeURIComponent(trackId)}`, {
+          method: 'DELETE'
+        });
+        if (res.ok) {
+          const result = await res.json();
+          if (result.room) setRoom(result.room);
+        }
+      } catch {}
+    }
   };
 
   const reorder = (trackId: string, newIndex: number) => {

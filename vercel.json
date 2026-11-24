@@ -21,18 +21,6 @@
   },
   "rewrites": [
     {
-      "source": "/health",
-      "destination": {
-        "service": "server"
-      }
-    },
-    {
-      "source": "/api/(.*)",
-      "destination": {
-        "service": "server"
-      }
-    },
-    {
       "source": "/socket.io/(.*)",
       "destination": {
         "service": "server"
