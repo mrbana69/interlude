@@ -33,6 +33,8 @@ export default function HostConsolePage() {
 
   const {
     isPlaying,
+    isLoading,
+    playbackError,
     currentTime,
     duration,
     play,
@@ -179,13 +181,25 @@ export default function HostConsolePage() {
             </div>
 
             {/* Transport Controls */}
+            {playbackError && (
+              <div className="p-2.5 rounded-xl bg-red-950/60 border border-red-800/70 text-xs text-red-200 text-center">
+                {playbackError}
+              </div>
+            )}
             <div className="flex items-center justify-center gap-6 pt-2">
               <button
                 onClick={isPlaying ? pause : play}
-                className="w-14 h-14 rounded-full bg-white text-black flex items-center justify-center hover:bg-neutral-200 transition-colors"
+                disabled={isLoading || !currentTrack}
+                className="w-14 h-14 rounded-full bg-white text-black flex items-center justify-center hover:bg-neutral-200 disabled:opacity-50 transition-colors"
                 title={isPlaying ? 'Pausa' : 'Play'}
               >
-                {isPlaying ? <IconPause size={28} /> : <IconPlay size={28} className="ml-1" />}
+                {isLoading ? (
+                  <span className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                ) : isPlaying ? (
+                  <IconPause size={28} />
+                ) : (
+                  <IconPlay size={28} className="ml-1" />
+                )}
               </button>
 
               <button

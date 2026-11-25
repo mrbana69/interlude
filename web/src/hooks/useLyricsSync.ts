@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import type { PlaybackSyncEvent } from './useSocket.js';
+import type { PlaybackSyncEvent, Track } from './useSocket.js';
 
 export interface LrcLine {
   timeSec: number;
@@ -36,9 +36,66 @@ export function useLyricsSync(
   lrcText: string | undefined,
   syncEvent: PlaybackSyncEvent | null,
   roomOffsetMs = 0,
-  localOffsetMs = 0
+  localOffsetMs = 0,
+  trackMeta?: Partial<Track>
 ) {
-  const lines = useMemo(() => parseLrc(lrcText), [lrcText]);
+  const [resolvedText, setResolvedText] = useState<string | undefined>(lrcText);
+  const [resolvedType, setResolvedType] = useState<'synced' | 'plain' | 'none'>(
+    trackMeta?.lyricsType || (lrcText ? 'synced' : 'none')
+  );
+  const [isLoadingLyrics, setIsLoadingLyrics] = useState(false);
+
+  // Keep synced with incoming track metadata or fetch from /api/lyrics on-demand if missing
+  useEffect(() => {
+    setResolvedText(lrcText);
+    if (lrcText) {
+      setResolvedType(trackMeta?.lyricsType === 'plain' ? 'plain' : 'synced');
+      setIsLoadingLyrics(false);
+      return;
+    }
+
+    if (!trackMeta?.title || !trackMeta?.artist) {
+      setResolvedType('none');
+      setIsLoadingLyrics(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsLoadingLyrics(true);
+    fetch(
+      `/api/lyrics?id=${encodeURIComponent(trackMeta.id || '')}&artist=${encodeURIComponent(trackMeta.artist)}&title=${encodeURIComponent(trackMeta.title)}&duration=${encodeURIComponent(String(trackMeta.durationSec || 180))}`
+    )
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled) return;
+        if (data && data.body && data.type !== 'none') {
+          setResolvedText(data.body);
+          setResolvedType(data.type);
+        } else {
+          setResolvedType('none');
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setResolvedType('none');
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingLyrics(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [lrcText, trackMeta?.id, trackMeta?.title, trackMeta?.artist, trackMeta?.durationSec, trackMeta?.lyricsType]);
+
+  const lines = useMemo(() => parseLrc(resolvedText), [resolvedText]);
+  const plainLines = useMemo(() => {
+    if (lines.length > 0 || !resolvedText) return [];
+    return resolvedText
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
+  }, [lines.length, resolvedText]);
+
   const [activeLineIndex, setActiveLineIndex] = useState(-1);
   const [interpolatedTime, setInterpolatedTime] = useState(0);
 
@@ -46,13 +103,12 @@ export function useLyricsSync(
     let animId: number;
 
     const tick = () => {
-      if (syncEvent && syncEvent.status === 'playing') {
+      if (syncEvent && syncEvent.status === 'playing' && lines.length > 0) {
         const elapsed = (Date.now() - syncEvent.hostTimestamp) / 1000;
         const totalOffset = (roomOffsetMs + localOffsetMs) / 1000;
         const currentSec = Math.max(0, syncEvent.positionSec + elapsed + totalOffset);
         setInterpolatedTime(currentSec);
 
-        // Find active line
         let found = -1;
         for (let i = 0; i < lines.length; i++) {
           if (lines[i].timeSec <= currentSec) {
@@ -60,6 +116,15 @@ export function useLyricsSync(
           } else {
             break;
           }
+        }
+        setActiveLineIndex(found);
+      } else if (syncEvent && syncEvent.status === 'paused' && lines.length > 0) {
+        const totalOffset = (roomOffsetMs + localOffsetMs) / 1000;
+        const currentSec = Math.max(0, syncEvent.positionSec + totalOffset);
+        let found = -1;
+        for (let i = 0; i < lines.length; i++) {
+          if (lines[i].timeSec <= currentSec) found = i;
+          else break;
         }
         setActiveLineIndex(found);
       }
@@ -72,7 +137,10 @@ export function useLyricsSync(
 
   return {
     lines,
+    plainLines,
+    resolvedType,
+    isLoadingLyrics,
     activeLineIndex,
-    interpolatedTime
+    interpolatedTime,
   };
 }

@@ -29,7 +29,13 @@ export default function GuestRoomPage() {
   const [addedToast, setAddedToast] = useState<string | null>(null);
 
   const currentTrack = room?.queue.find((t) => t.id === room.currentTrackId) || room?.queue[0];
-  const { lines, activeLineIndex } = useLyricsSync(currentTrack?.lyricsBody, lastSync);
+  const { lines, plainLines, isLoadingLyrics, activeLineIndex } = useLyricsSync(
+    currentTrack?.lyricsBody,
+    lastSync,
+    room?.lyricsOffsetMs || 0,
+    0,
+    currentTrack
+  );
 
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
   const activeLineRef = useRef<HTMLParagraphElement>(null);
@@ -69,9 +75,9 @@ export default function GuestRoomPage() {
     return () => clearTimeout(timer);
   }, [query]);
 
-  const handleAddTrack = (track: any, forceNormal = false) => {
-    addTrack(track, wantsInstrumental, forceNormal);
-    if (!wantsInstrumental || forceNormal) {
+  const handleAddTrack = async (track: any, forceNormal = false) => {
+    const ok = await addTrack(track, wantsInstrumental, forceNormal);
+    if (ok && (!wantsInstrumental || forceNormal)) {
       setAddedToast(`"${track.title}" aggiunto in coda`);
       setQuery('');
       setSearchResults([]);
@@ -374,7 +380,13 @@ export default function GuestRoomPage() {
                 </div>
 
                 {/* Lyrics Teleprompter */}
-                {lines.length > 0 ? (
+                {isLoadingLyrics ? (
+                  <div className="py-16 text-center text-muted p-6 bg-surface-900/40 rounded-2xl border border-surface-700/40">
+                    <span className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin inline-block mb-3" />
+                    <p className="text-sm font-semibold text-white">Ricerca testo sincronizzato...</p>
+                    <p className="text-xs text-muted mt-1">Consultazione database LRCLIB in corso.</p>
+                  </div>
+                ) : lines.length > 0 ? (
                   <div
                     ref={lyricsContainerRef}
                     className="p-5 bg-surface-900/60 border border-surface-700/50 rounded-2xl space-y-5 text-center max-h-[55vh] overflow-y-auto"
@@ -399,6 +411,17 @@ export default function GuestRoomPage() {
                         </p>
                       );
                     })}
+                  </div>
+                ) : plainLines.length > 0 ? (
+                  <div className="p-5 bg-surface-900/60 border border-surface-700/50 rounded-2xl space-y-3 text-center max-h-[55vh] overflow-y-auto">
+                    <p className="text-[10px] font-mono uppercase tracking-wider text-muted pb-2 border-b border-surface-700/60">
+                      Testo completo (non temporizzato)
+                    </p>
+                    {plainLines.map((line, idx) => (
+                      <p key={idx} className="text-sm text-white/90 font-medium leading-relaxed">
+                        {line}
+                      </p>
+                    ))}
                   </div>
                 ) : (
                   <div className="py-16 text-center text-muted p-6 bg-surface-900/40 rounded-2xl border border-surface-700/40">

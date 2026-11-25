@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRoom, getOrCreateRoom, addTrackToRoomQueue, removeTrackFromRoomQueue, addReactionToRoom } from '@/lib/roomStore';
+import {
+  getRoom,
+  getOrCreateRoom,
+  addTrackToRoomQueue,
+  removeTrackFromRoomQueue,
+  updateRoomPlaybackSync,
+  addReactionToRoom
+} from '@/lib/roomStore';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -23,17 +30,27 @@ export async function POST(req: NextRequest) {
     }
 
     if (body.action === 'queue:add') {
-      const { track, guestToken, nickname } = body;
-      const res = addTrackToRoomQueue(code, track, {
-        guestToken: guestToken || 'anon',
-        nickname: nickname || 'Ospite'
-      });
+      const { track, guestToken, nickname, requestInstrumental, forceNormal } = body;
+      const res = await addTrackToRoomQueue(
+        code,
+        { ...track, requestInstrumental, forceNormal },
+        {
+          guestToken: guestToken || 'anon',
+          nickname: nickname || 'Ospite'
+        }
+      );
       return NextResponse.json(res);
     }
 
     if (body.action === 'queue:remove') {
       const { trackId } = body;
       const room = removeTrackFromRoomQueue(code, trackId);
+      return NextResponse.json({ success: true, room });
+    }
+
+    if (body.action === 'playback:sync') {
+      const { status, currentTrackId, positionSec } = body;
+      const room = updateRoomPlaybackSync(code, { status, currentTrackId, positionSec });
       return NextResponse.json({ success: true, room });
     }
 

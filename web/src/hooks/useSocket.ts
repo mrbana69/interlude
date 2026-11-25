@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 
 export interface Track {
@@ -57,11 +57,9 @@ export interface QueueErrorEvent {
 const getServerUrl = () => {
   if (typeof window !== 'undefined') {
     if (process.env.NEXT_PUBLIC_SOCKET_URL) return process.env.NEXT_PUBLIC_SOCKET_URL;
-    // In standalone local dev on port 3000, connect directly to backend on 2007
     if (window.location.port === '3000') {
       return `${window.location.protocol}//${window.location.hostname}:2007`;
     }
-    // On Vercel (or custom domain), socket.io requests route through same origin via Vercel rewrites
     return window.location.origin;
   }
   return process.env.SERVER_URL || 'http://localhost:2007';
@@ -75,6 +73,19 @@ export function useRoomSocket(roomCode: string, isHost = false) {
   const [queueError, setQueueError] = useState<QueueErrorEvent | null>(null);
   const socketRef = useRef<Socket | null>(null);
 
+  const syncFromRoomSnapshot = useCallback((data: RoomState) => {
+    setRoom(data);
+    if (isHost && data.hostSecret) {
+      localStorage.setItem(`interlude_host_${roomCode}`, data.hostSecret);
+    }
+    setLastSync({
+      status: data.status,
+      currentTrackId: data.currentTrackId,
+      positionSec: data.positionSec || 0,
+      hostTimestamp: data.lastSyncTimestampMs || Date.now()
+    });
+  }, [isHost, roomCode]);
+
   useEffect(() => {
     if (!roomCode) return;
 
@@ -84,15 +95,26 @@ export function useRoomSocket(roomCode: string, isHost = false) {
       localStorage.setItem('interlude_guest_token', guestToken);
     }
 
-    let hostSecret = isHost ? localStorage.getItem(`interlude_host_${roomCode}`) : undefined;
+    const hostSecret = isHost ? localStorage.getItem(`interlude_host_${roomCode}`) : undefined;
+
+    // Immediate HTTP initial hydration so UI never waits for websocket timeout on Vercel
+    fetch(`/api/rooms?code=${encodeURIComponent(roomCode)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && data.code) {
+          syncFromRoomSnapshot(data);
+          setConnected(true);
+        }
+      })
+      .catch(() => {});
 
     const socket = io(getServerUrl(), {
       transports: ['websocket', 'polling'],
       reconnection: true,
-      reconnectionAttempts: Infinity,
-      reconnectionDelay: 1000,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1500,
       reconnectionDelayMax: 5000,
-      timeout: 20000
+      timeout: 6000
     });
     socketRef.current = socket;
 
@@ -106,19 +128,16 @@ export function useRoomSocket(roomCode: string, isHost = false) {
       });
     });
 
-    socket.on('disconnect', (reason) => {
-      console.warn('[Socket] Disconnected:', reason);
-      setConnected(false);
+    socket.on('disconnect', () => {
+      // Keep polling active without flagging UI red if HTTP works
     });
 
-    socket.on('connect_error', async (err) => {
-      console.warn('[Socket] Connection error:', err.message);
-      // Fallback: poll HTTP API in serverless deployments
+    socket.on('connect_error', async () => {
       try {
         const res = await fetch(`/api/rooms?code=${encodeURIComponent(roomCode)}`);
         if (res.ok) {
           const data = await res.json();
-          setRoom(data);
+          syncFromRoomSnapshot(data);
           setConnected(true);
         }
       } catch {
@@ -126,14 +145,14 @@ export function useRoomSocket(roomCode: string, isHost = false) {
       }
     });
 
-    // In case socket fails or disconnects on serverless, fallback interval keeps room in sync
+    // Polling fallback when Socket.IO is disconnected (e.g. serverless deployment)
     const fallbackInterval = setInterval(async () => {
       if (!socket.connected) {
         try {
           const res = await fetch(`/api/rooms?code=${encodeURIComponent(roomCode)}`);
           if (res.ok) {
             const data = await res.json();
-            setRoom(data);
+            syncFromRoomSnapshot(data);
             if (Array.isArray(data.reactions) && data.reactions.length > 0) {
               setReactions(data.reactions);
             }
@@ -141,13 +160,10 @@ export function useRoomSocket(roomCode: string, isHost = false) {
           }
         } catch {}
       }
-    }, 2500);
+    }, 2000);
 
     socket.on('room:state', (state: RoomState) => {
-      setRoom(state);
-      if (isHost && state.hostSecret) {
-        localStorage.setItem(`interlude_host_${roomCode}`, state.hostSecret);
-      }
+      syncFromRoomSnapshot(state);
     });
 
     socket.on('playback:sync', (sync: PlaybackSyncEvent) => {
@@ -166,9 +182,9 @@ export function useRoomSocket(roomCode: string, isHost = false) {
       clearInterval(fallbackInterval);
       socket.disconnect();
     };
-  }, [roomCode, isHost]);
+  }, [roomCode, isHost, syncFromRoomSnapshot]);
 
-  const addTrack = async (track: any, requestInstrumental = false, forceNormal = false) => {
+  const addTrack = async (track: any, requestInstrumental = false, forceNormal = false): Promise<boolean> => {
     const guestToken = localStorage.getItem('interlude_guest_token') || 'anon';
     const nickname = localStorage.getItem('interlude_nickname') || 'Ospite';
     if (socketRef.current?.connected) {
@@ -180,22 +196,34 @@ export function useRoomSocket(roomCode: string, isHost = false) {
         requestInstrumental,
         forceNormal
       });
-    } else {
-      // HTTP API Fallback
-      try {
-        const res = await fetch('/api/rooms', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'queue:add', code: roomCode, track, guestToken, nickname, requestInstrumental, forceNormal })
-        });
-        if (res.ok) {
-          const result = await res.json();
-          if (result.room) setRoom(result.room);
-        }
-      } catch (err: any) {
-        console.error('[HTTP Queue Error]:', err);
-      }
+      return true;
     }
+
+    try {
+      const res = await fetch('/api/rooms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'queue:add', code: roomCode, track, guestToken, nickname, requestInstrumental, forceNormal })
+      });
+      if (res.ok) {
+        const result = await res.json();
+        if (result.success === false) {
+          setQueueError({
+            message: result.error || 'Impossibile aggiungere il brano',
+            canFallbackToNormal: result.canFallbackToNormal,
+            track
+          });
+          return false;
+        }
+        if (result.room) {
+          setRoom(result.room);
+        }
+        return true;
+      }
+    } catch (err: any) {
+      console.error('[HTTP Queue Error]:', err);
+    }
+    return false;
   };
 
   const removeTrack = async (trackId: string) => {
@@ -224,28 +252,36 @@ export function useRoomSocket(roomCode: string, isHost = false) {
     socketRef.current?.emit('queue:reorder', { roomCode, trackId, newIndex, hostSecret });
   };
 
-  const sendPlaybackSync = (status: 'playing' | 'paused' | 'stopped', currentTrackId: string | null, positionSec: number) => {
+  const sendPlaybackSync = useCallback((status: 'playing' | 'paused' | 'stopped', currentTrackId: string | null, positionSec: number) => {
     const hostSecret = localStorage.getItem(`interlude_host_${roomCode}`);
-    socketRef.current?.emit('playback:sync', {
-      roomCode,
-      status,
-      currentTrackId,
-      positionSec,
-      hostSecret
-    });
-  };
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('playback:sync', {
+        roomCode,
+        status,
+        currentTrackId,
+        positionSec,
+        hostSecret
+      });
+    } else {
+      fetch('/api/rooms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'playback:sync', code: roomCode, status, currentTrackId, positionSec, hostSecret })
+      }).then((r) => (r.ok ? r.json() : null)).then((data) => {
+        if (data?.room) setRoom(data.room);
+      }).catch(() => {});
+    }
+  }, [roomCode]);
 
   const sendReaction = (emoji: string) => {
     const nickname = localStorage.getItem('interlude_nickname') || 'Ospite';
     if (socketRef.current?.connected) {
       socketRef.current.emit('reaction:send', { roomCode, emoji, nickname });
     }
-    // Optimistic local update
     setReactions(prev => [
       ...prev.slice(-20),
       { id: crypto.randomUUID(), emoji, nickname, timestamp: Date.now() }
     ]);
-    // HTTP sync fallback for serverless
     fetch('/api/rooms', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

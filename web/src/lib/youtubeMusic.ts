@@ -80,3 +80,30 @@ export async function searchYouTubeMusic(query: string) {
     return [];
   }
 }
+
+export async function findInstrumentalOnYTMusic(
+  artist: string,
+  title: string,
+  originalDurationSec: number
+): Promise<{ instrumentalId: string | null; title?: string }> {
+  try {
+    const client = await getYTMusicClient();
+    const query = `${artist} ${title} instrumental`;
+    const candidates = await client.searchSongs(query);
+
+    for (const song of candidates || []) {
+      const dur = song.duration || 0;
+      const nameLower = (song.name || '').toLowerCase();
+      const isDurationClose = Math.abs(dur - originalDurationSec) <= 8;
+      const hasInstrumentalKeyword =
+        nameLower.includes('instrumental') || nameLower.includes('karaoke') || nameLower.includes('backing track');
+
+      if (isDurationClose && hasInstrumentalKeyword) {
+        return { instrumentalId: song.videoId || song.id, title: song.name };
+      }
+    }
+    return { instrumentalId: null };
+  } catch {
+    return { instrumentalId: null };
+  }
+}

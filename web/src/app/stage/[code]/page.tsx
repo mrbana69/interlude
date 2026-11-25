@@ -13,10 +13,12 @@ export default function StageViewPage() {
   const currentTrack = room?.queue.find((t) => t.id === room.currentTrackId) || room?.queue[0];
   const nextTrack = room?.queue.find((t) => t.id !== currentTrack?.id);
 
-  const { lines, activeLineIndex } = useLyricsSync(
+  const { lines, plainLines, isLoadingLyrics, activeLineIndex } = useLyricsSync(
     currentTrack?.lyricsBody,
     lastSync,
-    room?.lyricsOffsetMs || 0
+    room?.lyricsOffsetMs || 0,
+    0,
+    currentTrack
   );
 
   return (
@@ -80,28 +82,56 @@ export default function StageViewPage() {
             </div>
 
             {/* Kinetic Lyrics Display */}
-            {lines.length > 0 ? (
+            {isLoadingLyrics ? (
+              <div className="py-12 text-center text-muted flex flex-col items-center gap-3">
+                <span className="w-7 h-7 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                <p className="text-base font-mono">Caricamento testo sincronizzato...</p>
+              </div>
+            ) : lines.length > 0 ? (
               <div className="flex flex-col gap-6 py-8 w-full items-center justify-center">
-                {/* Previous Line */}
-                {activeLineIndex > 0 && lines[activeLineIndex - 1] && (
-                  <p className="text-xl sm:text-2xl text-muted-dark transition-all duration-300">
-                    {lines[activeLineIndex - 1].text}
-                  </p>
-                )}
+                {activeLineIndex === -1 ? (
+                  <>
+                    <p className="font-display font-bold text-3xl sm:text-5xl text-white/90 transition-all duration-200">
+                      {lines[0]?.text}
+                    </p>
+                    {lines[1] && (
+                      <p className="text-xl sm:text-2xl text-muted transition-all duration-300">
+                        {lines[1].text}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {/* Previous Line */}
+                    {activeLineIndex > 0 && lines[activeLineIndex - 1] && (
+                      <p className="text-xl sm:text-2xl text-muted-dark transition-all duration-300">
+                        {lines[activeLineIndex - 1].text}
+                      </p>
+                    )}
 
-                {/* Active Line */}
-                {lines[activeLineIndex] && (
-                  <p className="font-display font-bold text-4xl sm:text-6xl text-white transition-all duration-200">
-                    {lines[activeLineIndex].text}
-                  </p>
-                )}
+                    {/* Active Line */}
+                    {lines[activeLineIndex] && (
+                      <p className="font-display font-bold text-4xl sm:text-6xl text-white transition-all duration-200">
+                        {lines[activeLineIndex].text}
+                      </p>
+                    )}
 
-                {/* Upcoming Line */}
-                {lines[activeLineIndex + 1] && (
-                  <p className="text-xl sm:text-2xl text-muted transition-all duration-300">
-                    {lines[activeLineIndex + 1].text}
-                  </p>
+                    {/* Upcoming Line */}
+                    {lines[activeLineIndex + 1] && (
+                      <p className="text-xl sm:text-2xl text-muted transition-all duration-300">
+                        {lines[activeLineIndex + 1].text}
+                      </p>
+                    )}
+                  </>
                 )}
+              </div>
+            ) : plainLines.length > 0 ? (
+              <div className="py-6 w-full max-w-2xl max-h-[45vh] overflow-y-auto space-y-3 text-center">
+                {plainLines.map((line, idx) => (
+                  <p key={idx} className="text-xl sm:text-2xl text-white/85 font-medium leading-relaxed">
+                    {line}
+                  </p>
+                ))}
               </div>
             ) : (
               <div className="py-12 text-center text-muted">
