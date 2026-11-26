@@ -5,10 +5,11 @@ import type { Track } from './useSocket.js';
 
 interface DeckSlot {
   trackId: string;
-  blobUrl: string;
+  streamUrl: string;
   audio: HTMLAudioElement;
-  sourceNode: MediaElementAudioSourceNode;
-  gainNode: GainNode;
+  sourceNode?: MediaElementAudioSourceNode;
+  gainNode?: GainNode;
+  cleanupTimers?: () => void;
 }
 
 declare global {
@@ -31,13 +32,19 @@ export function useHostAudioDeck(
   const [duration, setDuration] = useState(0);
 
   const audioCtxRef = useRef<AudioContext | null>(null);
+  const persistentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const persistentMediaRef = useRef<{ source: MediaElementAudioSourceNode; gain: GainNode } | null>(null);
   const slot1Ref = useRef<DeckSlot | null>(null);
-  const slot2Ref = useRef<{ trackId: string; blobUrl: string } | null>(null);
+  const prefetchedTrackIdRef = useRef<string | null>(null);
   const ytPlayerRef = useRef<any>(null);
   const ytReadyRef = useRef<boolean>(false);
   const activeEngineRef = useRef<'native' | 'youtube' | null>(null);
   const autoPlayOnSwitchRef = useRef<boolean>(false);
+  const isPlayingRef = useRef<boolean>(false);
   const activeTrackIdRef = useRef<string | null>(currentTrackId);
+  const playAttemptRef = useRef<number>(0);
+  const probeAbortRef = useRef<AbortController | null>(null);
+  const ytTransitionUntilRef = useRef<number>(0);
   const queueRef = useRef<Track[]>(queue);
   const onTrackChangeRef = useRef(onTrackChange);
   const onSyncRef = useRef(onSync);
@@ -45,6 +52,7 @@ export function useHostAudioDeck(
   queueRef.current = queue;
   onTrackChangeRef.current = onTrackChange;
   onSyncRef.current = onSync;
+  isPlayingRef.current = isPlaying;
 
   const getAudioContext = () => {
     if (!audioCtxRef.current) {
@@ -56,16 +64,59 @@ export function useHostAudioDeck(
     return audioCtxRef.current;
   };
 
+  const getPersistentAudio = () => {
+    if (!persistentAudioRef.current) {
+      const audio = new Audio();
+      audio.crossOrigin = 'anonymous';
+      audio.preload = 'auto';
+      persistentAudioRef.current = audio;
+    }
+    const audio = persistentAudioRef.current;
+    if (!persistentMediaRef.current) {
+      try {
+        const ctx = getAudioContext();
+        const source = ctx.createMediaElementSource(audio);
+        const gain = ctx.createGain();
+        source.connect(gain);
+        gain.connect(ctx.destination);
+        persistentMediaRef.current = { source, gain };
+      } catch {}
+    } else {
+      try {
+        getAudioContext();
+      } catch {}
+    }
+    return audio;
+  };
+
   const cleanupNativeSlot1 = () => {
     if (slot1Ref.current) {
       try {
-        slot1Ref.current.audio.pause();
+        slot1Ref.current.cleanupTimers?.();
         slot1Ref.current.audio.onended = null;
         slot1Ref.current.audio.ontimeupdate = null;
-        URL.revokeObjectURL(slot1Ref.current.blobUrl);
+        slot1Ref.current.audio.onplaying = null;
+        slot1Ref.current.audio.onerror = null;
+        slot1Ref.current.audio.pause();
       } catch {}
       slot1Ref.current = null;
     }
+  };
+
+  const stopAllEngines = () => {
+    if (probeAbortRef.current) {
+      try {
+        probeAbortRef.current.abort();
+      } catch {}
+      probeAbortRef.current = null;
+    }
+    cleanupNativeSlot1();
+    if (ytPlayerRef.current && ytReadyRef.current) {
+      try {
+        ytPlayerRef.current.pauseVideo?.();
+      } catch {}
+    }
+    activeEngineRef.current = null;
   };
 
   const ensureYouTubePlayer = (): Promise<any> => {
@@ -109,15 +160,31 @@ export function useHostAudioDeck(
               },
               onStateChange: (e: any) => {
                 if (activeEngineRef.current !== 'youtube') return;
+                const loadedId = ytPlayerRef.current?.getVideoData?.()?.video_id;
+                if (loadedId && activeTrackIdRef.current && loadedId !== activeTrackIdRef.current) {
+                  return;
+                }
                 if (e.data === 1) {
                   setIsPlaying(true);
                   setIsLoading(false);
                   setPlaybackError(null);
+                  const cur = ytPlayerRef.current?.getCurrentTime?.() || 0;
                   const dur = ytPlayerRef.current?.getDuration?.() || 0;
+                  setCurrentTime(cur);
                   if (dur > 0) setDuration(dur);
+                  onSyncRef.current('playing', activeTrackIdRef.current, cur);
                 } else if (e.data === 2) {
+                  if (Date.now() < ytTransitionUntilRef.current) return;
                   setIsPlaying(false);
+                  const cur = ytPlayerRef.current?.getCurrentTime?.() || 0;
+                  onSyncRef.current('paused', activeTrackIdRef.current, cur);
                 } else if (e.data === 0) {
+                  if (Date.now() < ytTransitionUntilRef.current) return;
+                  const cur = ytPlayerRef.current?.getCurrentTime?.() || 0;
+                  const dur = ytPlayerRef.current?.getDuration?.() || 0;
+                  if (dur > 20 && cur < dur * 0.7) {
+                    return;
+                  }
                   advanceTrack();
                 }
               },
@@ -153,27 +220,42 @@ export function useHostAudioDeck(
     });
   };
 
-  // Pre-fetch Slot #2 (Up Next) in background if direct audio stream works
+  // Warm stream URL resolver cache for next track without allocating full audio blobs in RAM
   const prefetchSlot2 = async (track: Track) => {
-    if (slot2Ref.current?.trackId === track.id) return;
-    if (slot2Ref.current) {
-      URL.revokeObjectURL(slot2Ref.current.blobUrl);
-      slot2Ref.current = null;
-    }
-
+    if (prefetchedTrackIdRef.current === track.id) return;
+    prefetchedTrackIdRef.current = track.id;
     try {
       const streamUrl = track.streamUrl || `/api/stream/${track.id}`;
-      const res = await fetch(streamUrl);
-      const contentType = res.headers.get('content-type') || '';
-      if (res.ok && contentType.startsWith('audio/')) {
-        const blob = await res.blob();
-        slot2Ref.current = {
-          trackId: track.id,
-          blobUrl: URL.createObjectURL(blob),
-        };
-      }
+      await fetch(streamUrl, { method: 'HEAD' });
     } catch {}
   };
+
+  const startYouTubePlayback = useCallback(async (track: Track, attempt: number, startSeconds = 0) => {
+    try {
+      ytTransitionUntilRef.current = Date.now() + 2000;
+      const player = await ensureYouTubePlayer();
+      if (playAttemptRef.current !== attempt) return;
+
+      cleanupNativeSlot1();
+      activeEngineRef.current = 'youtube';
+      setDuration(track.durationSec || 0);
+      setCurrentTime(startSeconds);
+      player.loadVideoById({ videoId: track.id, startSeconds });
+      player.playVideo();
+
+      setTimeout(() => {
+        if (playAttemptRef.current === attempt && activeEngineRef.current === 'youtube') {
+          setIsLoading(false);
+        }
+      }, 3500);
+    } catch {
+      if (playAttemptRef.current === attempt) {
+        setIsLoading(false);
+        setIsPlaying(false);
+        setPlaybackError('Impossibile avviare la riproduzione audio.');
+      }
+    }
+  }, []);
 
   const advanceTrack = useCallback(() => {
     const q = queueRef.current;
@@ -186,12 +268,14 @@ export function useHostAudioDeck(
       onTrackChangeRef.current(nextTrack.id);
     } else {
       autoPlayOnSwitchRef.current = false;
+      stopAllEngines();
       setIsPlaying(false);
       onSyncRef.current('stopped', null, 0);
     }
   }, []);
 
   const playTrackByObject = useCallback(async (track: Track) => {
+    const attempt = ++playAttemptRef.current;
     setIsLoading(true);
     setPlaybackError(null);
     activeTrackIdRef.current = track.id;
@@ -201,6 +285,7 @@ export function useHostAudioDeck(
       try {
         getAudioContext();
         await slot1Ref.current.audio.play();
+        if (playAttemptRef.current !== attempt) return;
         setIsPlaying(true);
         setIsLoading(false);
         onSyncRef.current('playing', track.id, slot1Ref.current.audio.currentTime);
@@ -222,80 +307,131 @@ export function useHostAudioDeck(
       } catch {}
     }
 
-    cleanupNativeSlot1();
+    stopAllEngines();
 
-    // Try Engine 1: Native Audio via /api/stream/[id]
-    let nativeBlobUrl = '';
-    if (slot2Ref.current?.trackId === track.id) {
-      nativeBlobUrl = slot2Ref.current.blobUrl;
-      slot2Ref.current = null;
-    } else {
-      try {
-        const streamUrl = track.streamUrl || `/api/stream/${track.id}`;
-        const res = await fetch(streamUrl, { signal: AbortSignal.timeout(7000) });
-        const contentType = res.headers.get('content-type') || '';
-        if (res.ok && contentType.startsWith('audio/')) {
-          const blob = await res.blob();
-          nativeBlobUrl = URL.createObjectURL(blob);
-        }
-      } catch {}
+    // Fast capability probe (HEAD) streams directly without pre-downloading the entire file
+    const streamUrl = track.streamUrl || `/api/stream/${track.id}`;
+    let canStreamNative = false;
+    const probeController = new AbortController();
+    probeAbortRef.current = probeController;
+    const probeTimer = setTimeout(() => probeController.abort(), 2500);
+    try {
+      const res = await fetch(streamUrl, { method: 'HEAD', signal: probeController.signal });
+      const contentType = res.headers.get('content-type') || '';
+      canStreamNative = res.ok && contentType.startsWith('audio/');
+    } catch {
+      canStreamNative = false;
+    } finally {
+      clearTimeout(probeTimer);
+      if (probeAbortRef.current === probeController) {
+        probeAbortRef.current = null;
+      }
     }
 
-    if (nativeBlobUrl) {
-      try {
-        const ctx = getAudioContext();
-        if (ytPlayerRef.current && ytReadyRef.current) {
-          try {
-            ytPlayerRef.current.pauseVideo();
-          } catch {}
+    if (playAttemptRef.current !== attempt) return;
+
+    if (canStreamNative) {
+      let fellBack = false;
+      let startupWatchdog: ReturnType<typeof setTimeout> | null = null;
+      const clearWatchdog = () => {
+        if (startupWatchdog) {
+          clearTimeout(startupWatchdog);
+          startupWatchdog = null;
         }
+      };
 
-        const audio = new Audio(nativeBlobUrl);
-        const sourceNode = ctx.createMediaElementSource(audio);
-        const gainNode = ctx.createGain();
-        sourceNode.connect(gainNode);
-        gainNode.connect(ctx.destination);
+      try {
+        const audio = getPersistentAudio();
+        audio.onended = null;
+        audio.ontimeupdate = null;
+        audio.onplaying = null;
+        audio.onerror = null;
+        audio.pause();
+        audio.src = streamUrl;
+        audio.currentTime = 0;
 
-        audio.onended = () => advanceTrack();
-        audio.ontimeupdate = () => {
-          setCurrentTime(audio.currentTime);
-          setDuration(audio.duration || track.durationSec || 0);
+        const fallbackToYt = (resumePos = 0) => {
+          if (fellBack || playAttemptRef.current !== attempt) return;
+          fellBack = true;
+          clearWatchdog();
+          cleanupNativeSlot1();
+          startYouTubePlayback(track, attempt, Math.floor(Math.max(0, resumePos)));
         };
 
-        await audio.play();
+        startupWatchdog = setTimeout(() => {
+          fallbackToYt(audio.currentTime || 0);
+        }, 4500);
+
+        audio.onplaying = () => {
+          if (playAttemptRef.current !== attempt || fellBack) return;
+          clearWatchdog();
+          activeEngineRef.current = 'native';
+          setIsPlaying(true);
+          setIsLoading(false);
+          setPlaybackError(null);
+          const resolvedDur =
+            Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : (track.durationSec || 0);
+          setDuration(resolvedDur);
+          onSyncRef.current('playing', track.id, audio.currentTime);
+        };
+
+        audio.ontimeupdate = () => {
+          if (playAttemptRef.current !== attempt || fellBack) return;
+          setCurrentTime(audio.currentTime);
+          if (Number.isFinite(audio.duration) && audio.duration > 0) {
+            setDuration(audio.duration);
+          }
+        };
+
+        audio.onended = () => {
+          if (playAttemptRef.current !== attempt || fellBack) return;
+          clearWatchdog();
+          const expectedDur =
+            Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : (track.durationSec || 0);
+          // Guard against truncated HTTP streams prematurely advancing to the next song
+          if (expectedDur > 20 && audio.currentTime < expectedDur * 0.75) {
+            fallbackToYt(audio.currentTime);
+            return;
+          }
+          advanceTrack();
+        };
+
+        audio.onerror = () => {
+          fallbackToYt(audio.currentTime || 0);
+        };
+
         activeEngineRef.current = 'native';
-        slot1Ref.current = { trackId: track.id, blobUrl: nativeBlobUrl, audio, sourceNode, gainNode };
-        setIsPlaying(true);
-        setIsLoading(false);
+        slot1Ref.current = {
+          trackId: track.id,
+          streamUrl,
+          audio,
+          sourceNode: persistentMediaRef.current?.source,
+          gainNode: persistentMediaRef.current?.gain,
+          cleanupTimers: clearWatchdog,
+        };
         setDuration(track.durationSec || 0);
-        onSyncRef.current('playing', track.id, 0);
+        setCurrentTime(0);
+
+        await audio.play();
+
+        if (playAttemptRef.current !== attempt) {
+          cleanupNativeSlot1();
+          return;
+        }
 
         const idx = queueRef.current.findIndex((t) => t.id === track.id);
         const nextTrack = queueRef.current[idx + 1];
         if (nextTrack) prefetchSlot2(nextTrack);
         return;
       } catch {
-        URL.revokeObjectURL(nativeBlobUrl);
+        clearWatchdog();
+        cleanupNativeSlot1();
       }
     }
 
     // Fallback Engine 2: YouTube IFrame Bridge (runs from Host PC/TV browser IP, bypasses datacenter blocks)
-    try {
-      const player = await ensureYouTubePlayer();
-      activeEngineRef.current = 'youtube';
-      setDuration(track.durationSec || 0);
-      setCurrentTime(0);
-      player.loadVideoById(track.id);
-      player.playVideo();
-      setIsPlaying(true);
-      setIsLoading(false);
-      onSyncRef.current('playing', track.id, 0);
-    } catch {
-      setIsLoading(false);
-      setIsPlaying(false);
-      setPlaybackError('Impossibile avviare la riproduzione audio.');
-    }
-  }, [advanceTrack]);
+    await startYouTubePlayback(track, attempt, 0);
+  }, [advanceTrack, startYouTubePlayback]);
 
   const playCurrent = async () => {
     const target =
@@ -306,19 +442,34 @@ export function useHostAudioDeck(
     await playTrackByObject(target);
   };
 
-  // Automatically trigger playback when currentTrackId advances via skip() or onended
+  // Automatically trigger playback when currentTrackId advances via skip(), onended, or queue deletion while playing
   useEffect(() => {
+    const prevId = activeTrackIdRef.current;
     activeTrackIdRef.current = currentTrackId;
-    if (currentTrackId && autoPlayOnSwitchRef.current) {
+    if (currentTrackId && (autoPlayOnSwitchRef.current || (isPlayingRef.current && prevId !== currentTrackId))) {
       autoPlayOnSwitchRef.current = false;
       const target = queueRef.current.find((t) => t.id === currentTrackId);
       if (target) {
         playTrackByObject(target);
       }
+    } else if (!currentTrackId && isPlayingRef.current) {
+      playAttemptRef.current += 1;
+      stopAllEngines();
+      setIsPlaying(false);
+      setIsLoading(false);
     }
   }, [currentTrackId, playTrackByObject]);
 
+  useEffect(() => {
+    return () => {
+      playAttemptRef.current += 1;
+      stopAllEngines();
+    };
+  }, []);
+
   const pause = () => {
+    playAttemptRef.current += 1;
+    setIsLoading(false);
     if (activeEngineRef.current === 'native' && slot1Ref.current) {
       slot1Ref.current.audio.pause();
       setIsPlaying(false);
@@ -329,6 +480,9 @@ export function useHostAudioDeck(
       } catch {}
       setIsPlaying(false);
       onSyncRef.current('paused', activeTrackIdRef.current, ytPlayerRef.current.getCurrentTime?.() || currentTime);
+    } else {
+      stopAllEngines();
+      setIsPlaying(false);
     }
   };
 
@@ -347,20 +501,28 @@ export function useHostAudioDeck(
     }
   };
 
-  // Track timeline progress when using YouTube Engine 2
+  // Track timeline progress when using YouTube Engine 2 (also recovers if state=1 event was missed)
   useEffect(() => {
     const timer = setInterval(() => {
-      if (activeEngineRef.current === 'youtube' && ytPlayerRef.current && ytReadyRef.current && isPlaying) {
+      if (activeEngineRef.current === 'youtube' && ytPlayerRef.current && ytReadyRef.current) {
         try {
-          const cur = ytPlayerRef.current.getCurrentTime?.() || 0;
-          const dur = ytPlayerRef.current.getDuration?.() || 0;
-          setCurrentTime(cur);
-          if (dur > 0) setDuration(dur);
+          const state = ytPlayerRef.current.getPlayerState?.();
+          if (state === 1) {
+            const cur = ytPlayerRef.current.getCurrentTime?.() || 0;
+            const dur = ytPlayerRef.current.getDuration?.() || 0;
+            if (!isPlayingRef.current) {
+              setIsPlaying(true);
+              setIsLoading(false);
+              onSyncRef.current('playing', activeTrackIdRef.current, cur);
+            }
+            setCurrentTime(cur);
+            if (dur > 0) setDuration(dur);
+          }
         } catch {}
       }
     }, 300);
     return () => clearInterval(timer);
-  }, [isPlaying]);
+  }, []);
 
   // Heartbeat sync every 2 seconds
   useEffect(() => {

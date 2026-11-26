@@ -59,11 +59,15 @@ export default function HostConsolePage() {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  const copyGuestLink = () => {
+  const copyGuestLink = async () => {
     const url = `${window.location.origin}/room/${roomCode}`;
-    navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard?.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      window.prompt('Copia il link ospite:', url);
+    }
   };
 
   return (
@@ -170,7 +174,7 @@ export default function HostConsolePage() {
                 title="Clicca per saltare nella traccia"
               >
                 <div
-                  className="bg-white group-hover:bg-accent-green h-full transition-all duration-150 rounded-full"
+                  className="bg-white group-hover:bg-accent-green h-full transition-[width] duration-150 rounded-full"
                   style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
                 />
               </div>
@@ -189,7 +193,7 @@ export default function HostConsolePage() {
             <div className="flex items-center justify-center gap-6 pt-2">
               <button
                 onClick={isPlaying ? pause : play}
-                disabled={isLoading || !currentTrack}
+                disabled={!currentTrack}
                 className="w-14 h-14 rounded-full bg-white text-black flex items-center justify-center hover:bg-neutral-200 disabled:opacity-50 transition-colors"
                 title={isPlaying ? 'Pausa' : 'Play'}
               >

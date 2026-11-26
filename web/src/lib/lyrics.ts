@@ -63,48 +63,63 @@ export async function resolveLyrics(
   const cleanArtist = sanitizeArtist(artist) || artist;
   const headers = { 'User-Agent': 'Interlude/1.0 (https://interlude-five.vercel.app)' };
 
-  // 1. Exact LRCLIB /api/get (raw then sanitized)
-  for (const [a, t] of [
-    [artist, title],
-    [cleanArtist, cleanTitle],
-  ]) {
-    try {
+  // 1. Exact LRCLIB /api/get (raw + sanitized in parallel)
+  const exactResults = await Promise.allSettled(
+    [
+      [artist, title],
+      [cleanArtist, cleanTitle],
+    ].map(async ([a, t]) => {
       const url = `https://lrclib.net/api/get?artist_name=${encodeURIComponent(a)}&track_name=${encodeURIComponent(t)}${durationSec > 0 ? `&duration=${Math.round(durationSec)}` : ''}`;
-      const res = await fetch(url, { headers, signal: AbortSignal.timeout(4500) });
-      if (res.ok) {
-        const data: any = await res.json();
-        if (data?.syncedLyrics) {
-          const out = { type: 'synced' as const, body: data.syncedLyrics };
-          lyricsCache.set(cacheKey, out);
-          return out;
-        }
-        if (data?.plainLyrics) {
-          const out = { type: 'plain' as const, body: data.plainLyrics };
-          lyricsCache.set(cacheKey, out);
-          return out;
-        }
+      const res = await fetch(url, { headers, signal: AbortSignal.timeout(4000) });
+      if (!res.ok) return null;
+      const data: any = await res.json();
+      if (data?.syncedLyrics) return { type: 'synced' as const, body: data.syncedLyrics };
+      if (data?.plainLyrics) return { type: 'plain' as const, body: data.plainLyrics };
+      return null;
+    })
+  );
+
+  let exactPlain: { type: LyricsType; body: string } | null = null;
+  for (const r of exactResults) {
+    if (r.status === 'fulfilled' && r.value) {
+      if (r.value.type === 'synced') {
+        lyricsCache.set(cacheKey, r.value);
+        return r.value;
       }
-    } catch {}
+      if (!exactPlain) exactPlain = r.value;
+    }
   }
 
-  // 2. Fuzzy LRCLIB /api/search (handles duration mismatch, remix/featuring variations)
+  // 2. Fuzzy LRCLIB /api/search (parallel queries for faster resolution)
   const searchUrls = [
     `https://lrclib.net/api/search?track_name=${encodeURIComponent(cleanTitle)}&artist_name=${encodeURIComponent(cleanArtist)}`,
     `https://lrclib.net/api/search?q=${encodeURIComponent(`${cleanArtist} ${cleanTitle}`)}`,
   ];
 
-  for (const url of searchUrls) {
-    try {
-      const res = await fetch(url, { headers, signal: AbortSignal.timeout(4500) });
-      if (res.ok) {
-        const results: any[] = await res.json();
-        const match = pickBestLrclibMatch(results, durationSec);
-        if (match) {
-          lyricsCache.set(cacheKey, match);
-          return match;
-        }
+  const fuzzyResults = await Promise.allSettled(
+    searchUrls.map(async (url) => {
+      const res = await fetch(url, { headers, signal: AbortSignal.timeout(4000) });
+      if (!res.ok) return null;
+      const results: any[] = await res.json();
+      return pickBestLrclibMatch(results, durationSec);
+    })
+  );
+
+  let fuzzyPlain: { type: LyricsType; body: string } | null = null;
+  for (const r of fuzzyResults) {
+    if (r.status === 'fulfilled' && r.value) {
+      if (r.value.type === 'synced') {
+        lyricsCache.set(cacheKey, r.value);
+        return r.value;
       }
-    } catch {}
+      if (!fuzzyPlain) fuzzyPlain = r.value;
+    }
+  }
+
+  const plainFallback = exactPlain || fuzzyPlain;
+  if (plainFallback) {
+    lyricsCache.set(cacheKey, plainFallback);
+    return plainFallback;
   }
 
   // 3. Fallback to NetEase (163 Cloud Music)

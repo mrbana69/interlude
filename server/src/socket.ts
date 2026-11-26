@@ -67,14 +67,26 @@ export function setupSocketIO(server: HTTPServer) {
     // Host heartbeat & playback sync (broadcasted to stage and guests)
     socket.on('playback:sync', ({ roomCode, status, currentTrackId, positionSec, hostSecret }) => {
       if (!roomCode || !hostSecret) return;
+      const prevRoom = getRoom(roomCode);
+      const trackOrStatusChanged =
+        !prevRoom || prevRoom.currentTrackId !== currentTrackId || prevRoom.status !== status;
       const ok = updatePlaybackSync(roomCode, { status, currentTrackId, positionSec }, hostSecret);
       if (ok) {
-        socket.to(roomCode.toUpperCase()).emit('playback:sync', {
+        const roomKey = roomCode.toUpperCase();
+        const serverNowMs = Date.now();
+        socket.to(roomKey).emit('playback:sync', {
           status,
           currentTrackId,
           positionSec,
-          hostTimestamp: Date.now()
+          hostTimestamp: serverNowMs,
+          serverNowMs
         });
+        if (trackOrStatusChanged) {
+          const updatedRoom = getRoom(roomCode);
+          if (updatedRoom) {
+            io.to(roomKey).emit('room:state', { ...updatedRoom, serverNowMs });
+          }
+        }
       }
     });
 

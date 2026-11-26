@@ -10,7 +10,8 @@ export default function StageViewPage() {
   const roomCode = (params.code as string) || '';
 
   const { room, connected, lastSync, reactions } = useRoomSocket(roomCode, false);
-  const currentTrack = room?.queue.find((t) => t.id === room.currentTrackId) || room?.queue[0];
+  const activeTrackId = lastSync?.currentTrackId ?? room?.currentTrackId;
+  const currentTrack = room?.queue.find((t) => t.id === activeTrackId) || room?.queue[0];
   const nextTrack = room?.queue.find((t) => t.id !== currentTrack?.id);
 
   const { lines, plainLines, isLoadingLyrics, activeLineIndex } = useLyricsSync(
@@ -91,11 +92,11 @@ export default function StageViewPage() {
               <div className="flex flex-col gap-6 py-8 w-full items-center justify-center">
                 {activeLineIndex === -1 ? (
                   <>
-                    <p className="font-display font-bold text-3xl sm:text-5xl text-white/90 transition-all duration-200">
+                    <p className="font-display font-bold text-3xl sm:text-5xl text-white/90 transition-[opacity,transform,color] duration-150">
                       {lines[0]?.text}
                     </p>
                     {lines[1] && (
-                      <p className="text-xl sm:text-2xl text-muted transition-all duration-300">
+                      <p className="text-xl sm:text-2xl text-muted transition-[opacity,transform,color] duration-200">
                         {lines[1].text}
                       </p>
                     )}
@@ -104,21 +105,21 @@ export default function StageViewPage() {
                   <>
                     {/* Previous Line */}
                     {activeLineIndex > 0 && lines[activeLineIndex - 1] && (
-                      <p className="text-xl sm:text-2xl text-muted-dark transition-all duration-300">
+                      <p className="text-xl sm:text-2xl text-muted-dark transition-[opacity,transform,color] duration-200">
                         {lines[activeLineIndex - 1].text}
                       </p>
                     )}
 
                     {/* Active Line */}
                     {lines[activeLineIndex] && (
-                      <p className="font-display font-bold text-4xl sm:text-6xl text-white transition-all duration-200">
+                      <p className="font-display font-bold text-4xl sm:text-6xl text-white transition-[opacity,transform,color] duration-150 will-change-transform">
                         {lines[activeLineIndex].text}
                       </p>
                     )}
 
                     {/* Upcoming Line */}
                     {lines[activeLineIndex + 1] && (
-                      <p className="text-xl sm:text-2xl text-muted transition-all duration-300">
+                      <p className="text-xl sm:text-2xl text-muted transition-[opacity,transform,color] duration-200">
                         {lines[activeLineIndex + 1].text}
                       </p>
                     )}
@@ -153,10 +154,10 @@ export default function StageViewPage() {
 
       {/* Live Reactions Floating Stream */}
       <div className="absolute bottom-10 right-10 z-20 pointer-events-none flex flex-col-reverse items-end gap-2.5">
-        {reactions.slice(-6).map((r) => (
+        {reactions.slice(-5).map((r) => (
           <div
             key={r.id}
-            className="flex items-center gap-2 bg-surface-900/90 border border-surface-700/80 px-4 py-2 rounded-full shadow-2xl backdrop-blur-md animate-bounce"
+            className="flex items-center gap-2 bg-surface-900/95 border border-surface-700/80 px-4 py-2 rounded-full shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-200"
           >
             <span className="text-2xl font-['Apple_Color_Emoji','Segoe_UI_Emoji','Noto_Color_Emoji',sans-serif]">{r.emoji}</span>
             <span className="text-xs font-mono font-semibold text-white">{r.nickname}</span>

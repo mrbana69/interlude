@@ -28,10 +28,12 @@ export interface RoomState {
   currentTrackId: string | null;
   positionSec: number;
   lastSyncTimestampMs: number;
+  serverNowMs?: number;
   crossfadeSec: number;
   lyricsOffsetMs: number;
   queue: Track[];
   history: Track[];
+  reactions?: ReactionEvent[];
 }
 
 export interface PlaybackSyncEvent {
@@ -39,6 +41,7 @@ export interface PlaybackSyncEvent {
   currentTrackId: string | null;
   positionSec: number;
   hostTimestamp: number;
+  serverNowMs?: number;
 }
 
 export interface ReactionEvent {
@@ -72,19 +75,85 @@ export function useRoomSocket(roomCode: string, isHost = false) {
   const [reactions, setReactions] = useState<ReactionEvent[]>([]);
   const [queueError, setQueueError] = useState<QueueErrorEvent | null>(null);
   const socketRef = useRef<Socket | null>(null);
+  const lastSyncRef = useRef<PlaybackSyncEvent | null>(null);
+
+  const isSameRoomMeaningfully = (prev: RoomState | null, next: RoomState) => {
+    if (!prev) return false;
+    if (
+      prev.code !== next.code ||
+      prev.status !== next.status ||
+      prev.currentTrackId !== next.currentTrackId ||
+      prev.crossfadeSec !== next.crossfadeSec ||
+      prev.lyricsOffsetMs !== next.lyricsOffsetMs ||
+      prev.queue.length !== next.queue.length
+    ) {
+      return false;
+    }
+    for (let i = 0; i < next.queue.length; i++) {
+      if (
+        prev.queue[i]?.id !== next.queue[i]?.id ||
+        prev.queue[i]?.lyricsType !== next.queue[i]?.lyricsType ||
+        prev.queue[i]?.lyricsBody !== next.queue[i]?.lyricsBody
+      ) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const applyNormalizedSync = useCallback((incoming: PlaybackSyncEvent, force = false) => {
+    const prev = lastSyncRef.current;
+    if (!force && prev && prev.status === incoming.status && prev.currentTrackId === incoming.currentTrackId) {
+      if (incoming.status === 'playing') {
+        const expectedPos = prev.positionSec + Math.max(0, (Date.now() - prev.hostTimestamp) / 1000);
+        const drift = Math.abs(expectedPos - incoming.positionSec);
+        if (drift < 0.75) {
+          return;
+        }
+      } else if (Math.abs(prev.positionSec - incoming.positionSec) < 0.25) {
+        return;
+      }
+    }
+    lastSyncRef.current = incoming;
+    setLastSync(incoming);
+  }, []);
 
   const syncFromRoomSnapshot = useCallback((data: RoomState) => {
-    setRoom(data);
+    setRoom((prev) => (isSameRoomMeaningfully(prev, data) ? prev : data));
+    if (Array.isArray(data.reactions) && data.reactions.length > 0) {
+      setReactions((prev) => {
+        if (
+          prev.length === data.reactions!.length &&
+          prev[prev.length - 1]?.id === data.reactions![data.reactions!.length - 1]?.id
+        ) {
+          return prev;
+        }
+        return data.reactions!;
+      });
+    }
     if (isHost && data.hostSecret) {
       localStorage.setItem(`interlude_host_${roomCode}`, data.hostSecret);
     }
-    setLastSync({
+
+    // Host drives its own clock via useHostAudioDeck/sendPlaybackSync; avoid polling overwriting live position
+    if (isHost && lastSyncRef.current) {
+      return;
+    }
+
+    const refNowMs = data.serverNowMs || Date.now();
+    const serverAgeSec =
+      data.status === 'playing' && data.lastSyncTimestampMs
+        ? Math.max(0, Math.min(30, (refNowMs - data.lastSyncTimestampMs) / 1000))
+        : 0;
+    const normalizedPos = (data.positionSec || 0) + serverAgeSec;
+
+    applyNormalizedSync({
       status: data.status,
       currentTrackId: data.currentTrackId,
-      positionSec: data.positionSec || 0,
-      hostTimestamp: data.lastSyncTimestampMs || Date.now()
+      positionSec: normalizedPos,
+      hostTimestamp: Date.now(),
     });
-  }, [isHost, roomCode]);
+  }, [applyNormalizedSync, isHost, roomCode]);
 
   useEffect(() => {
     if (!roomCode) return;
@@ -153,21 +222,44 @@ export function useRoomSocket(roomCode: string, isHost = false) {
           if (res.ok) {
             const data = await res.json();
             syncFromRoomSnapshot(data);
-            if (Array.isArray(data.reactions) && data.reactions.length > 0) {
-              setReactions(data.reactions);
-            }
             setConnected(true);
           }
         } catch {}
       }
-    }, 2000);
+    }, 2500);
 
     socket.on('room:state', (state: RoomState) => {
       syncFromRoomSnapshot(state);
     });
 
     socket.on('playback:sync', (sync: PlaybackSyncEvent) => {
-      setLastSync(sync);
+      const serverAgeSec =
+        sync.status === 'playing' && sync.serverNowMs && sync.hostTimestamp
+          ? Math.max(0, Math.min(5, (sync.serverNowMs - sync.hostTimestamp) / 1000))
+          : 0;
+
+      setRoom((prev) => {
+        if (!prev) return prev;
+        if (prev.status === sync.status && prev.currentTrackId === sync.currentTrackId) {
+          return prev;
+        }
+        return {
+          ...prev,
+          status: sync.status,
+          currentTrackId: sync.currentTrackId !== undefined ? sync.currentTrackId : prev.currentTrackId,
+          positionSec: sync.positionSec,
+        };
+      });
+
+      applyNormalizedSync(
+        {
+          status: sync.status,
+          currentTrackId: sync.currentTrackId,
+          positionSec: (sync.positionSec || 0) + serverAgeSec,
+          hostTimestamp: Date.now(),
+        },
+        true
+      );
     });
 
     socket.on('reaction:received', (reaction: ReactionEvent) => {
@@ -182,7 +274,7 @@ export function useRoomSocket(roomCode: string, isHost = false) {
       clearInterval(fallbackInterval);
       socket.disconnect();
     };
-  }, [roomCode, isHost, syncFromRoomSnapshot]);
+  }, [roomCode, isHost, syncFromRoomSnapshot, applyNormalizedSync]);
 
   const addTrack = async (track: any, requestInstrumental = false, forceNormal = false): Promise<boolean> => {
     const guestToken = localStorage.getItem('interlude_guest_token') || 'anon';
@@ -253,6 +345,26 @@ export function useRoomSocket(roomCode: string, isHost = false) {
   };
 
   const sendPlaybackSync = useCallback((status: 'playing' | 'paused' | 'stopped', currentTrackId: string | null, positionSec: number) => {
+    const localSync: PlaybackSyncEvent = {
+      status,
+      currentTrackId,
+      positionSec,
+      hostTimestamp: Date.now(),
+    };
+    setRoom((prev) => {
+      if (!prev) return prev;
+      if (prev.status === status && prev.currentTrackId === currentTrackId) {
+        return prev;
+      }
+      return {
+        ...prev,
+        status,
+        currentTrackId,
+        positionSec,
+      };
+    });
+    applyNormalizedSync(localSync, status !== 'playing' || lastSyncRef.current?.currentTrackId !== currentTrackId);
+
     const hostSecret = localStorage.getItem(`interlude_host_${roomCode}`);
     if (socketRef.current?.connected) {
       socketRef.current.emit('playback:sync', {
@@ -268,10 +380,12 @@ export function useRoomSocket(roomCode: string, isHost = false) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'playback:sync', code: roomCode, status, currentTrackId, positionSec, hostSecret })
       }).then((r) => (r.ok ? r.json() : null)).then((data) => {
-        if (data?.room) setRoom(data.room);
+        if (data?.room) {
+          setRoom((prev) => (isSameRoomMeaningfully(prev, data.room) ? prev : data.room));
+        }
       }).catch(() => {});
     }
-  }, [roomCode]);
+  }, [applyNormalizedSync, roomCode]);
 
   const sendReaction = (emoji: string) => {
     const nickname = localStorage.getItem('interlude_nickname') || 'Ospite';

@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Code missing' }, { status: 400 });
   }
   const room = getRoom(code) || getOrCreateRoom(code);
-  return NextResponse.json(room);
+  return NextResponse.json({ ...room, serverNowMs: Date.now() });
 }
 
 export async function POST(req: NextRequest) {
@@ -51,11 +51,11 @@ export async function POST(req: NextRequest) {
     if (body.action === 'playback:sync') {
       const { status, currentTrackId, positionSec } = body;
       const room = updateRoomPlaybackSync(code, { status, currentTrackId, positionSec });
-      return NextResponse.json({ success: true, room });
+      return NextResponse.json({ success: true, room: { ...room, serverNowMs: Date.now() } });
     }
 
     const room = getOrCreateRoom(code, body.hostSecret);
-    return NextResponse.json(room);
+    return NextResponse.json({ ...room, serverNowMs: Date.now() });
   } catch (err: any) {
     return NextResponse.json({ error: err?.message }, { status: 500 });
   }

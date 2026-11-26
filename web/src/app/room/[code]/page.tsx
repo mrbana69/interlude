@@ -28,7 +28,8 @@ export default function GuestRoomPage() {
   const [wantsInstrumental, setWantsInstrumental] = useState(false);
   const [addedToast, setAddedToast] = useState<string | null>(null);
 
-  const currentTrack = room?.queue.find((t) => t.id === room.currentTrackId) || room?.queue[0];
+  const activeTrackId = lastSync?.currentTrackId ?? room?.currentTrackId;
+  const currentTrack = room?.queue.find((t) => t.id === activeTrackId) || room?.queue[0];
   const { lines, plainLines, isLoadingLyrics, activeLineIndex } = useLyricsSync(
     currentTrack?.lyricsBody,
     lastSync,
@@ -39,40 +40,61 @@ export default function GuestRoomPage() {
 
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
   const activeLineRef = useRef<HTMLParagraphElement>(null);
+  const prevTabRef = useRef(activeTab);
 
-  // Auto-scroll to active lyric line in lyrics tab
+  // Scroll only inside the lyrics container to prevent outer page jitter and smooth-scroll lag
   useEffect(() => {
-    if (activeTab === 'lyrics' && activeLineRef.current && lyricsContainerRef.current) {
-      activeLineRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-      });
-    }
+    const tabJustSwitched = prevTabRef.current !== activeTab;
+    prevTabRef.current = activeTab;
+    if (activeTab !== 'lyrics') return;
+    const container = lyricsContainerRef.current;
+    const activeEl = activeLineRef.current;
+    if (!container || !activeEl) return;
+
+    const targetTop = Math.max(
+      0,
+      activeEl.offsetTop - container.clientHeight / 2 + activeEl.clientHeight / 2
+    );
+    container.scrollTo({
+      top: targetTop,
+      behavior: tabJustSwitched ? 'auto' : 'smooth',
+    });
   }, [activeLineIndex, activeTab]);
 
-  // Debounced search querying backend via Next.js proxy rewrite
+  // Debounced search querying backend with cancellation for stale queries
   useEffect(() => {
     if (!query.trim() || query.length < 2) {
       setSearchResults([]);
+      setIsSearching(false);
       return;
     }
 
+    const controller = new AbortController();
     const timer = setTimeout(async () => {
       setIsSearching(true);
       try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(query.trim())}`);
-        if (res.ok) {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(query.trim())}`, {
+          signal: controller.signal,
+        });
+        if (res.ok && !controller.signal.aborted) {
           const data = await res.json();
           setSearchResults(data);
         }
-      } catch {
-        setSearchResults([]);
+      } catch (err: any) {
+        if (err?.name !== 'AbortError') {
+          setSearchResults([]);
+        }
       } finally {
-        setIsSearching(false);
+        if (!controller.signal.aborted) {
+          setIsSearching(false);
+        }
       }
-    }, 300);
+    }, 280);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [query]);
 
   const handleAddTrack = async (track: any, forceNormal = false) => {
@@ -95,7 +117,7 @@ export default function GuestRoomPage() {
   return (
     <div className="h-[100dvh] bg-black text-white flex flex-col font-sans max-w-md mx-auto border-x border-surface-700/60 overflow-hidden relative select-none">
       {/* Top Header */}
-      <header className="h-14 border-b border-surface-700/70 bg-black/95 backdrop-blur-md px-4 flex items-center justify-between flex-shrink-0 z-40">
+      <header className="h-14 border-b border-surface-700/70 bg-black/95 px-4 flex items-center justify-between flex-shrink-0 z-40">
         <div className="flex items-center gap-3">
           <span className="font-display font-extrabold text-xl tracking-tighter">interlude</span>
           <span className="font-mono text-xs px-2.5 py-0.5 rounded-md bg-surface-800 border border-surface-700 text-muted-light font-bold">
@@ -389,7 +411,7 @@ export default function GuestRoomPage() {
                 ) : lines.length > 0 ? (
                   <div
                     ref={lyricsContainerRef}
-                    className="p-5 bg-surface-900/60 border border-surface-700/50 rounded-2xl space-y-5 text-center max-h-[55vh] overflow-y-auto"
+                    className="relative p-5 bg-surface-900/60 border border-surface-700/50 rounded-2xl space-y-5 text-center max-h-[55vh] overflow-y-auto"
                   >
                     {lines.map((line, idx) => {
                       const isActive = idx === activeLineIndex;
@@ -399,7 +421,7 @@ export default function GuestRoomPage() {
                         <p
                           key={idx}
                           ref={isActive ? activeLineRef : null}
-                          className={`transition-all duration-200 leading-relaxed ${
+                          className={`transition-[opacity,transform,color] duration-150 will-change-transform leading-relaxed ${
                             isActive
                               ? 'text-lg sm:text-xl font-display font-bold text-white scale-105'
                               : isPast
@@ -516,17 +538,12 @@ export default function GuestRoomPage() {
       </main>
 
       {/* ================= FIXED BOTTOM REACTION DOCK ================= */}
-      <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto z-50 bg-black/95 backdrop-blur-xl border-t border-surface-700/80 px-4 py-2.5 pb-[calc(0.6rem+env(safe-area-inset-bottom,0px))] flex items-center justify-around shadow-2xl">
+      <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto z-50 bg-black/95 border-t border-surface-700/80 px-4 py-2.5 pb-[calc(0.6rem+env(safe-area-inset-bottom,0px))] flex items-center justify-around shadow-2xl">
         {['🔥', '👏', '🎉', '🎤', '❤️'].map((emoji) => (
           <button
             key={emoji}
             type="button"
-            onClick={() => {
-              handleReaction(emoji);
-              if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                navigator.vibrate(30);
-              }
-            }}
+            onClick={() => handleReaction(emoji)}
             className="w-12 h-12 rounded-full bg-surface-900 border border-surface-700/80 flex items-center justify-center text-xl hover:bg-surface-800 active:scale-90 transition-transform shadow-sm font-['Apple_Color_Emoji','Segoe_UI_Emoji','Noto_Color_Emoji',sans-serif]"
             title={`Invia ${emoji}`}
             aria-label={`Invia reazione ${emoji}`}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import type { PlaybackSyncEvent, Track } from './useSocket.js';
 
 export interface LrcLine {
@@ -97,43 +97,61 @@ export function useLyricsSync(
   }, [lines.length, resolvedText]);
 
   const [activeLineIndex, setActiveLineIndex] = useState(-1);
-  const [interpolatedTime, setInterpolatedTime] = useState(0);
 
-  useEffect(() => {
-    let animId: number;
+  const syncContextRef = useRef({
+    lines,
+    syncEvent,
+    roomOffsetMs,
+    localOffsetMs,
+  });
+  syncContextRef.current = { lines, syncEvent, roomOffsetMs, localOffsetMs };
 
-    const tick = () => {
-      if (syncEvent && syncEvent.status === 'playing' && lines.length > 0) {
-        const elapsed = (Date.now() - syncEvent.hostTimestamp) / 1000;
-        const totalOffset = (roomOffsetMs + localOffsetMs) / 1000;
-        const currentSec = Math.max(0, syncEvent.positionSec + elapsed + totalOffset);
-        setInterpolatedTime(currentSec);
+  const computeActiveLine = () => {
+    const { lines: curLines, syncEvent: curSync, roomOffsetMs: rOff, localOffsetMs: lOff } = syncContextRef.current;
+    if (!curSync || curLines.length === 0 || curSync.status === 'stopped') {
+      return -1;
+    }
 
-        let found = -1;
-        for (let i = 0; i < lines.length; i++) {
-          if (lines[i].timeSec <= currentSec) {
-            found = i;
-          } else {
-            break;
-          }
-        }
-        setActiveLineIndex(found);
-      } else if (syncEvent && syncEvent.status === 'paused' && lines.length > 0) {
-        const totalOffset = (roomOffsetMs + localOffsetMs) / 1000;
-        const currentSec = Math.max(0, syncEvent.positionSec + totalOffset);
-        let found = -1;
-        for (let i = 0; i < lines.length; i++) {
-          if (lines[i].timeSec <= currentSec) found = i;
-          else break;
-        }
-        setActiveLineIndex(found);
+    const totalOffsetSec = (rOff + lOff) / 1000;
+    const elapsedSec =
+      curSync.status === 'playing'
+        ? Math.max(0, (Date.now() - curSync.hostTimestamp) / 1000)
+        : 0;
+    const currentSec = Math.max(0, curSync.positionSec + elapsedSec + totalOffsetSec);
+
+    // Binary search keeps line lookup O(log n)
+    let low = 0;
+    let high = curLines.length - 1;
+    let found = -1;
+    while (low <= high) {
+      const mid = (low + high) >> 1;
+      if (curLines[mid].timeSec <= currentSec) {
+        found = mid;
+        low = mid + 1;
+      } else {
+        high = mid - 1;
       }
-      animId = requestAnimationFrame(tick);
-    };
+    }
+    return found;
+  };
 
-    animId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(animId);
+  // Immediate update whenever sync boundary, track lines, or offsets change
+  useEffect(() => {
+    const nextIdx = computeActiveLine();
+    setActiveLineIndex((prev) => (prev === nextIdx ? prev : nextIdx));
   }, [lines, syncEvent, roomOffsetMs, localOffsetMs]);
+
+  // Lightweight 50ms interval while playing; only re-renders React when the active line actually changes
+  useEffect(() => {
+    if (!syncEvent || syncEvent.status !== 'playing' || lines.length === 0) return;
+
+    const timer = setInterval(() => {
+      const nextIdx = computeActiveLine();
+      setActiveLineIndex((prev) => (prev === nextIdx ? prev : nextIdx));
+    }, 50);
+
+    return () => clearInterval(timer);
+  }, [syncEvent?.status, lines.length]);
 
   return {
     lines,
@@ -141,6 +159,6 @@ export function useLyricsSync(
     resolvedType,
     isLoadingLyrics,
     activeLineIndex,
-    interpolatedTime,
+    interpolatedTime: 0,
   };
 }
